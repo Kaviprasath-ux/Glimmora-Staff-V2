@@ -88,7 +88,7 @@ const TaskModal = ({ isOpen, onClose }) => {
         <div className="relative bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
           {/* Header */}
           <div className="sticky top-0 bg-white border-b border-neutral-200 px-6 py-4 flex items-center justify-between">
-            <h2 className="text-xl font-serif font-semibold text-deepgreen">Add New Task</h2>
+            <h2 className="text-xl font-sans font-semibold text-neutral-700">Add New Task</h2>
             <button
               onClick={handleClose}
               className="p-2 hover:bg-neutral-100 rounded-lg transition-colors"
@@ -197,7 +197,7 @@ const TaskModal = ({ isOpen, onClose }) => {
                       type="text"
                       value={item}
                       onChange={(e) => updateChecklistItem(index, e.target.value)}
-                      className="flex-1 px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                      className="flex-1 px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-neutral-500 focus:border-transparent"
                       placeholder={`Checklist item ${index + 1}`}
                     />
                     {checklistItems.length > 1 && (
@@ -215,7 +215,7 @@ const TaskModal = ({ isOpen, onClose }) => {
               <button
                 type="button"
                 onClick={addChecklistItem}
-                className="mt-2 text-sm text-primary hover:text-primary/80 font-medium"
+                className="mt-2 text-sm text-neutral-600 hover:text-neutral-700 font-medium"
               >
                 + Add Checklist Item
               </button>
@@ -245,7 +245,7 @@ const TaskModal = ({ isOpen, onClose }) => {
               </button>
               <button
                 type="submit"
-                className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-[#8E6554] transition-colors"
+                className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
               >
                 Add Task
               </button>

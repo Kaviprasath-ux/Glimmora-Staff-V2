@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { roomsAssigned as initialRooms } from '../../data/roomsAssigned';
 import RoomCard from '../../components/rooms/RoomCard';
 import { useStaffNotifications } from '../../context/StaffNotificationsContext';
-import { FunnelIcon } from '@heroicons/react/24/outline';
 
 const Rooms = () => {
   const [rooms, setRooms] = useState(() => {
@@ -89,47 +88,21 @@ const Rooms = () => {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-5xl mx-auto space-y-6 pb-8">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-serif font-bold text-deepgreen">My Rooms</h1>
-        <p className="text-neutral-600 mt-1">Manage your assigned rooms and cleaning tasks</p>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white border border-neutral-200 rounded-xl shadow-sm p-6">
-          <div className="text-neutral-600 text-sm mb-1">Total Rooms</div>
-          <div className="text-3xl font-bold text-neutral-900">{stats.total}</div>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-neutral-900 mb-2">My Rooms</h1>
+          <p className="text-neutral-600">{stats.total} rooms assigned</p>
         </div>
-        <div className="bg-white border border-neutral-200 rounded-xl shadow-sm p-6">
-          <div className="text-neutral-600 text-sm mb-1">Dirty</div>
-          <div className="text-3xl font-bold text-gold">{stats.dirty}</div>
-        </div>
-        <div className="bg-white border border-neutral-200 rounded-xl shadow-sm p-6">
-          <div className="text-neutral-600 text-sm mb-1">In Progress</div>
-          <div className="text-3xl font-bold text-teal">{stats.inProgress}</div>
-        </div>
-        <div className="bg-white border border-neutral-200 rounded-xl shadow-sm p-6">
-          <div className="text-neutral-600 text-sm mb-1">Clean</div>
-          <div className="text-3xl font-bold text-deepgreen">{stats.clean}</div>
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div className="bg-white border border-neutral-200 rounded-xl shadow-sm p-4">
-        <div className="flex items-center gap-2 mb-3">
-          <FunnelIcon className="h-5 w-5 text-neutral-600" />
-          <span className="font-medium text-neutral-900">Filter by Status</span>
-        </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex gap-2">
           {statusOptions.map((option) => (
             <button
               key={option.value}
               onClick={() => setFilterStatus(option.value)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
                 filterStatus === option.value
-                  ? 'bg-primary text-white'
+                  ? 'bg-deepgreen text-white'
                   : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
               }`}
             >
@@ -139,31 +112,41 @@ const Rooms = () => {
         </div>
       </div>
 
+      {/* Stats */}
+      <div className="grid grid-cols-4 gap-4">
+        <div className="bg-white border border-neutral-200 rounded-lg p-4">
+          <div className="text-2xl font-bold text-neutral-900">{stats.total}</div>
+          <div className="text-sm text-neutral-600 mt-1">Total</div>
+        </div>
+        <div className="bg-white border border-neutral-200 rounded-lg p-4">
+          <div className="text-2xl font-bold text-gold">{stats.dirty}</div>
+          <div className="text-sm text-neutral-600 mt-1">Dirty</div>
+        </div>
+        <div className="bg-white border border-neutral-200 rounded-lg p-4">
+          <div className="text-2xl font-bold text-teal">{stats.inProgress}</div>
+          <div className="text-sm text-neutral-600 mt-1">In Progress</div>
+        </div>
+        <div className="bg-white border border-neutral-200 rounded-lg p-4">
+          <div className="text-2xl font-bold text-deepgreen">{stats.clean}</div>
+          <div className="text-sm text-neutral-600 mt-1">Clean</div>
+        </div>
+      </div>
+
       {/* Rooms Grid */}
       {filteredRooms.length === 0 ? (
-        <div className="bg-white border border-neutral-200 rounded-xl shadow-sm p-12 text-center">
-          <div className="text-neutral-400 mb-2">
-            <svg
-              className="mx-auto h-12 w-12"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
-              />
+        <div className="text-center py-16">
+          <div className="w-16 h-16 bg-neutral-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="h-8 w-8 text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
             </svg>
           </div>
-          <h3 className="text-lg font-semibold text-neutral-900 mb-1">No rooms found</h3>
+          <h3 className="text-lg font-semibold text-neutral-900 mb-2">No rooms found</h3>
           <p className="text-neutral-600">
-            No {filterStatus === 'all' ? '' : filterStatus} rooms assigned at the moment
+            No {filterStatus === 'all' ? '' : filterStatus} rooms assigned
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {filteredRooms.map((room) => (
             <RoomCard
               key={room.id}

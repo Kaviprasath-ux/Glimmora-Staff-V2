@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ClockIcon, MapPinIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
+import { MapPinIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 import { useStaffSchedule } from '../../context/StaffScheduleContext';
 
 const ShiftCard = () => {
@@ -14,13 +14,6 @@ const ShiftCard = () => {
   }, []);
 
   const shift = schedule.currentShift;
-
-  const statusColors = {
-    not_started: 'bg-neutral-100 text-neutral-700',
-    on_duty: 'bg-teal/10 text-teal border-teal/30',
-    on_break: 'bg-gold/10 text-deepgreen border-gold/30',
-    completed: 'bg-deepgreen/10 text-deepgreen border-deepgreen/30',
-  };
 
   const statusLabels = {
     not_started: 'Not Started',
@@ -48,131 +41,118 @@ const ShiftCard = () => {
   };
 
   return (
-    <div className="bg-white border border-neutral-200 rounded-xl shadow-sm p-6">
-      <div className="flex items-center justify-between mb-6">
+    <div className="bg-white border border-neutral-200 rounded-lg p-6">
+      {/* Header */}
+      <div className="flex items-start justify-between mb-6">
         <div>
-          <h3 className="text-xl font-serif font-semibold text-deepgreen">Current Shift</h3>
-          <p className="text-sm text-neutral-600 mt-1">{formatDate(currentTime)}</p>
+          <h2 className="text-xl font-semibold text-neutral-900 mb-1">Current Shift</h2>
+          <p className="text-sm text-neutral-600">{formatDate(currentTime)}</p>
         </div>
         <div className="text-right">
-          <div className="text-3xl font-bold text-primary">{formatTime(currentTime)}</div>
-        </div>
-      </div>
-
-      {/* Shift Details */}
-      <div className="grid grid-cols-2 gap-4 mb-6">
-        <div className="p-4 bg-neutral-50 rounded-lg">
-          <div className="text-xs text-neutral-600 mb-1">Shift Type</div>
-          <div className="font-semibold text-neutral-900">{shift.shift}</div>
-        </div>
-        <div className="p-4 bg-neutral-50 rounded-lg">
-          <div className="text-xs text-neutral-600 mb-1">Scheduled Hours</div>
-          <div className="font-semibold text-neutral-900">
-            {shift.startTime} - {shift.endTime}
-          </div>
-        </div>
-      </div>
-
-      {/* Status */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium text-neutral-700">Status</span>
-          <span className={`px-3 py-1 rounded-lg text-sm font-medium border ${statusColors[shift.status]}`}>
+          <div className="text-2xl font-bold text-neutral-900">{formatTime(currentTime)}</div>
+          <span className={`inline-block px-3 py-1 rounded text-xs font-medium mt-2 ${
+            shift.status === 'on_duty' ? 'bg-green-600 text-white' :
+            shift.status === 'on_break' ? 'bg-yellow-500 text-white' :
+            shift.status === 'completed' ? 'bg-blue-500 text-white' :
+            'bg-neutral-100 text-neutral-700'
+          }`}>
             {statusLabels[shift.status]}
           </span>
         </div>
       </div>
 
-      {/* Clock In/Out Info */}
-      <div className="space-y-3 mb-6">
-        {shift.clockInTime && (
-          <div className="flex items-center justify-between p-3 bg-teal/5 rounded-lg border border-teal/20">
-            <div className="flex items-center text-sm">
-              <CheckCircleIcon className="h-5 w-5 text-teal mr-2" />
-              <span className="text-neutral-700">Clocked In</span>
-            </div>
-            <span className="font-semibold text-teal">{shift.clockInTime}</span>
+      {/* Shift Info */}
+      <div className="grid grid-cols-3 gap-3 mb-6">
+        <div className="p-3 bg-neutral-50 rounded">
+          <div className="text-xs text-neutral-600 mb-1">Shift</div>
+          <div className="font-semibold text-neutral-900">{shift.shift}</div>
+        </div>
+        <div className="p-3 bg-neutral-50 rounded">
+          <div className="text-xs text-neutral-600 mb-1">Hours</div>
+          <div className="font-semibold text-neutral-900">
+            {shift.startTime} - {shift.endTime}
           </div>
-        )}
-
-        {shift.breakStart && (
-          <div className="flex items-center justify-between p-3 bg-gold/5 rounded-lg border border-gold/20">
-            <div className="flex items-center text-sm">
-              <ClockIcon className="h-5 w-5 text-gold mr-2" />
-              <span className="text-neutral-700">Break Started</span>
-            </div>
-            <span className="font-semibold text-deepgreen">{shift.breakStart}</span>
+        </div>
+        <div className="p-3 bg-neutral-50 rounded">
+          <div className="text-xs text-neutral-600 mb-1">Location</div>
+          <div className="font-semibold text-neutral-900 flex items-center">
+            <MapPinIcon className="h-3.5 w-3.5 mr-1" />
+            {shift.location}
           </div>
-        )}
-
-        {shift.breakEnd && (
-          <div className="flex items-center justify-between p-3 bg-teal/5 rounded-lg border border-teal/20">
-            <div className="flex items-center text-sm">
-              <CheckCircleIcon className="h-5 w-5 text-teal mr-2" />
-              <span className="text-neutral-700">Break Ended</span>
-            </div>
-            <span className="font-semibold text-teal">{shift.breakEnd}</span>
-          </div>
-        )}
-
-        {shift.clockOutTime && (
-          <div className="flex items-center justify-between p-3 bg-deepgreen/5 rounded-lg border border-deepgreen/20">
-            <div className="flex items-center text-sm">
-              <CheckCircleIcon className="h-5 w-5 text-deepgreen mr-2" />
-              <span className="text-neutral-700">Clocked Out</span>
-            </div>
-            <span className="font-semibold text-deepgreen">{shift.clockOutTime}</span>
-          </div>
-        )}
+        </div>
       </div>
 
-      {/* Location */}
-      <div className="flex items-center text-sm text-neutral-600 mb-6 p-3 bg-neutral-50 rounded-lg">
-        <MapPinIcon className="h-4 w-4 mr-2" />
-        {shift.location}
-      </div>
+      {/* Time Logs */}
+      {(shift.clockInTime || shift.breakStart || shift.breakEnd || shift.clockOutTime) && (
+        <div className="space-y-2 mb-6">
+          {shift.clockInTime && (
+            <div className="flex items-center justify-between text-sm py-2 border-b border-neutral-200">
+              <span className="text-neutral-600">Clocked In</span>
+              <span className="font-medium text-neutral-900">{shift.clockInTime}</span>
+            </div>
+          )}
+          {shift.breakStart && (
+            <div className="flex items-center justify-between text-sm py-2 border-b border-neutral-200">
+              <span className="text-neutral-600">Break Start</span>
+              <span className="font-medium text-neutral-900">{shift.breakStart}</span>
+            </div>
+          )}
+          {shift.breakEnd && (
+            <div className="flex items-center justify-between text-sm py-2 border-b border-neutral-200">
+              <span className="text-neutral-600">Break End</span>
+              <span className="font-medium text-neutral-900">{shift.breakEnd}</span>
+            </div>
+          )}
+          {shift.clockOutTime && (
+            <div className="flex items-center justify-between text-sm py-2">
+              <span className="text-neutral-600">Clocked Out</span>
+              <span className="font-medium text-neutral-900">{shift.clockOutTime}</span>
+            </div>
+          )}
+        </div>
+      )}
 
-      {/* Action Buttons */}
+      {/* Actions */}
       <div className="space-y-2">
         {!shift.clockInTime && shift.status !== 'completed' && (
           <button
             onClick={clockIn}
-            className="w-full px-4 py-3 bg-teal text-white rounded-lg hover:bg-teal/90 transition-colors font-medium"
+            className="w-full px-4 py-2.5 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium"
           >
             Clock In
           </button>
         )}
 
         {shift.clockInTime && shift.status === 'on_duty' && !shift.clockOutTime && (
-          <>
+          <div className="grid grid-cols-2 gap-2">
             <button
               onClick={startBreak}
-              className="w-full px-4 py-3 bg-gold text-white rounded-lg hover:bg-gold/90 transition-colors font-medium"
+              className="px-4 py-2.5 bg-neutral-100 text-neutral-900 rounded-lg hover:bg-neutral-200 transition-colors font-medium"
             >
               Start Break
             </button>
             <button
               onClick={clockOut}
-              className="w-full px-4 py-3 bg-deepgreen text-white rounded-lg hover:bg-deepgreen/90 transition-colors font-medium"
+              className="px-4 py-2.5 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium"
             >
               Clock Out
             </button>
-          </>
+          </div>
         )}
 
         {shift.status === 'on_break' && (
           <button
             onClick={endBreak}
-            className="w-full px-4 py-3 bg-teal text-white rounded-lg hover:bg-teal/90 transition-colors font-medium"
+            className="w-full px-4 py-2.5 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium"
           >
             End Break
           </button>
         )}
 
         {shift.status === 'completed' && (
-          <div className="text-center p-4 bg-deepgreen/10 rounded-lg border border-deepgreen/20">
-            <CheckCircleIcon className="h-12 w-12 text-deepgreen mx-auto mb-2" />
-            <p className="text-sm font-medium text-deepgreen">Shift Completed</p>
+          <div className="text-center py-4">
+            <CheckCircleIcon className="h-10 w-10 text-green-600 mx-auto mb-2" />
+            <p className="text-sm font-medium text-green-700">Shift Completed</p>
           </div>
         )}
       </div>

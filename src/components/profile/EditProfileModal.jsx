@@ -60,7 +60,7 @@ const EditProfileModal = ({ isOpen, onClose, profile, onSave }) => {
         <div className="relative bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
           {/* Header */}
           <div className="sticky top-0 bg-white border-b border-neutral-200 px-6 py-4 flex items-center justify-between">
-            <h2 className="text-xl font-serif font-semibold text-deepgreen">Edit Profile</h2>
+            <h2 className="text-xl font-sans font-semibold text-neutral-700">Edit Profile</h2>
             <button
               onClick={onClose}
               className="p-2 hover:bg-neutral-100 rounded-lg transition-colors"
@@ -172,7 +172,7 @@ const EditProfileModal = ({ isOpen, onClose, profile, onSave }) => {
               <button
                 type="button"
                 onClick={() => setShowPasswordChange(!showPasswordChange)}
-                className="text-primary hover:text-primary/80 font-medium text-sm"
+                className="text-neutral-600 hover:text-neutral-700 font-medium text-sm"
               >
                 {showPasswordChange ? 'Hide Password Change' : 'Change Password'}
               </button>
@@ -215,7 +215,7 @@ const EditProfileModal = ({ isOpen, onClose, profile, onSave }) => {
                   <button
                     type="button"
                     onClick={handlePasswordChange}
-                    className="w-full px-4 py-2 bg-deepgreen text-white rounded-lg hover:bg-deepgreen/90 transition-colors"
+                    className="w-full px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
                   >
                     Update Password
                   </button>
@@ -234,7 +234,7 @@ const EditProfileModal = ({ isOpen, onClose, profile, onSave }) => {
               </button>
               <button
                 type="submit"
-                className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-[#8E6554] transition-colors"
+                className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
               >
                 Save Changes
               </button>

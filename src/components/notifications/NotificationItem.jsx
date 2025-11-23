@@ -10,25 +10,19 @@ const NotificationItem = ({ notification, onMarkAsRead, onDelete }) => {
   const typeConfig = {
     task: {
       icon: ClipboardDocumentListIcon,
-      color: 'text-primary',
-      bgColor: 'bg-primary/10',
+      color: 'text-blue-600',
+      bgColor: 'bg-blue-50',
     },
     room: {
       icon: HomeModernIcon,
-      color: 'text-teal',
-      bgColor: 'bg-teal/10',
+      color: 'text-green-600',
+      bgColor: 'bg-green-50',
     },
     schedule: {
       icon: ClockIcon,
-      color: 'text-deepgreen',
-      bgColor: 'bg-deepgreen/10',
+      color: 'text-primary',
+      bgColor: 'bg-primary/10',
     },
-  };
-
-  const priorityColors = {
-    high: 'border-l-4 border-l-gold',
-    medium: 'border-l-4 border-l-teal',
-    low: 'border-l-4 border-l-neutral-300',
   };
 
   const config = typeConfig[notification.type] || typeConfig.task;
@@ -56,34 +50,34 @@ const NotificationItem = ({ notification, onMarkAsRead, onDelete }) => {
 
   return (
     <div
-      className={`bg-white border border-neutral-200 rounded-xl shadow-sm p-4 hover:shadow-md transition-all ${
-        !notification.read ? `${priorityColors[notification.priority]} bg-neutral-50/50` : ''
+      className={`bg-white border border-neutral-200 rounded-lg p-4 hover:border-neutral-300 transition-colors ${
+        !notification.read ? 'bg-neutral-50' : ''
       }`}
     >
-      <div className="flex items-start gap-4">
+      <div className="flex items-start gap-3">
         {/* Icon */}
-        <div className={`${config.bgColor} p-3 rounded-lg flex-shrink-0`}>
-          <Icon className={`h-6 w-6 ${config.color}`} />
+        <div className={`${config.bgColor} p-2 rounded flex-shrink-0`}>
+          <Icon className={`h-5 w-5 ${config.color}`} />
         </div>
 
         {/* Content */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between mb-1">
+          <div className="flex items-start justify-between gap-2 mb-1">
             <h4 className={`text-sm font-semibold ${!notification.read ? 'text-neutral-900' : 'text-neutral-700'}`}>
               {notification.title}
             </h4>
             {!notification.read && (
-              <span className="ml-2 h-2 w-2 rounded-full bg-primary flex-shrink-0" />
+              <span className="h-2 w-2 rounded-full bg-primary flex-shrink-0 mt-1" />
             )}
           </div>
           <p className="text-sm text-neutral-600 mb-2">{notification.message}</p>
           <div className="flex items-center justify-between">
             <span className="text-xs text-neutral-500">{formatTimestamp(notification.timestamp)}</span>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
               {!notification.read && (
                 <button
                   onClick={() => onMarkAsRead(notification.id)}
-                  className="p-1.5 text-teal hover:bg-teal/10 rounded-lg transition-colors"
+                  className="p-1.5 text-neutral-600 hover:bg-neutral-100 rounded transition-colors"
                   title="Mark as read"
                 >
                   <CheckIcon className="h-4 w-4" />
@@ -91,7 +85,7 @@ const NotificationItem = ({ notification, onMarkAsRead, onDelete }) => {
               )}
               <button
                 onClick={() => onDelete(notification.id)}
-                className="p-1.5 text-neutral-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                className="p-1.5 text-neutral-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
                 title="Delete"
               >
                 <TrashIcon className="h-4 w-4" />
