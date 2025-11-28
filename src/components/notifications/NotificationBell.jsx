@@ -1,23 +1,38 @@
 import { Bell } from 'lucide-react';
-import { useStaffNotifications } from '../../context/StaffNotificationsContext';
+import { useNotifications, useUI } from '../../hooks/useStaffPortal';
 
-export default function NotificationBell() {
-  const { notifications } = useStaffNotifications();
-  const count = notifications.length;
+const NotificationBell = ({ className = '' }) => {
+  const { unreadCount, urgentNotifications } = useNotifications();
+  const { toggleNotificationDrawer } = useUI();
+
+  const hasUrgent = urgentNotifications.length > 0;
 
   return (
     <button
-      type="button"
-      className="relative rounded-full border border-[#E7E1D9] bg-[#FAF7F4] p-2 text-[#4E5840] hover:bg-white"
-      aria-label="Notifications"
+      onClick={toggleNotificationDrawer}
+      className={`
+        relative p-2 rounded-[10px] transition-all duration-200
+        hover:bg-neutral-dark text-text-light hover:text-text
+        ${className}
+      `}
+      aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
     >
-      <Bell className="h-5 w-5" strokeWidth={1.75} />
-      {count ? (
-        <span className="absolute -top-1 -right-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#A57865] px-1 text-[11px] font-semibold text-white">
-          {count}
+      <Bell className={`w-5 h-5 ${hasUrgent ? 'animate-pulse text-danger' : ''}`} />
+
+      {unreadCount > 0 && (
+        <span
+          className={`
+            absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px]
+            flex items-center justify-center
+            text-xs font-bold text-white rounded-full px-1
+            ${hasUrgent ? 'bg-danger' : 'bg-primary'}
+          `}
+        >
+          {unreadCount > 99 ? '99+' : unreadCount}
         </span>
-      ) : null}
+      )}
     </button>
   );
-}
+};
 
+export default NotificationBell;
