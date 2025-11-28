@@ -1,0 +1,141 @@
+export const workOrders = [
+  {
+    id: 'wo-1001',
+    title: 'AC not cooling properly',
+    description: 'Guest reports that the AC is running but not cooling the room adequately. Temperature stays at 78°F even when set to 68°F.',
+    room: '1203',
+    category: 'AC',
+    priority: 'high',
+    status: 'inprogress',
+    reportedBy: 'hk001',
+    assignedTo: 'mnt001',
+    createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+    photos: [],
+    checklist: [
+      { id: 'cl-1001-1', label: 'Check thermostat settings', completed: true },
+      { id: 'cl-1001-2', label: 'Inspect air filter', completed: true },
+      { id: 'cl-1001-3', label: 'Check refrigerant levels', completed: false },
+      { id: 'cl-1001-4', label: 'Test compressor', completed: false },
+    ],
+    comments: [
+      { id: 'cmt-1001-1', message: 'Filter was clogged, replaced with new one', author: 'John Williams', timestamp: new Date(Date.now() - 45 * 60 * 1000).toISOString() },
+    ],
+    activityLog: [
+      { id: 'log-1001-1', text: 'Work order created', timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString() },
+      { id: 'log-1001-2', text: 'Assigned to John Williams', timestamp: new Date(Date.now() - 1.5 * 60 * 60 * 1000).toISOString() },
+      { id: 'log-1001-3', text: 'Status changed to In Progress', timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString() },
+      { id: 'log-1001-4', text: 'Checklist item completed: Check thermostat settings', timestamp: new Date(Date.now() - 50 * 60 * 1000).toISOString() },
+      { id: 'log-1001-5', text: 'Checklist item completed: Inspect air filter', timestamp: new Date(Date.now() - 45 * 60 * 1000).toISOString() },
+    ],
+  },
+  {
+    id: 'wo-1002',
+    title: 'Bathroom faucet leaking',
+    description: 'Persistent drip from the bathroom sink faucet. Water is pooling around the base.',
+    room: '907',
+    category: 'Plumbing',
+    priority: 'medium',
+    status: 'new',
+    reportedBy: 'hk001',
+    assignedTo: null,
+    createdAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+    photos: [],
+    checklist: [],
+    comments: [],
+    activityLog: [
+      { id: 'log-1002-1', text: 'Work order created', timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString() },
+    ],
+  },
+  {
+    id: 'wo-1003',
+    title: 'Power outlet not working',
+    description: 'The outlet near the desk is completely dead. Guest cannot charge devices.',
+    room: '1108',
+    category: 'Electrical',
+    priority: 'critical',
+    status: 'new',
+    reportedBy: 'hk001',
+    assignedTo: null,
+    createdAt: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
+    photos: [],
+    checklist: [],
+    comments: [],
+    activityLog: [
+      { id: 'log-1003-1', text: 'Work order created', timestamp: new Date(Date.now() - 15 * 60 * 1000).toISOString() },
+    ],
+  },
+  {
+    id: 'wo-1004',
+    title: 'Desk chair broken',
+    description: 'The hydraulic lift on the desk chair no longer holds. Chair sinks when sat on.',
+    room: '1501',
+    category: 'Furniture',
+    priority: 'low',
+    status: 'paused',
+    reportedBy: 'run001',
+    assignedTo: 'mnt001',
+    createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
+    photos: [],
+    checklist: [
+      { id: 'cl-1004-1', label: 'Assess chair condition', completed: true },
+      { id: 'cl-1004-2', label: 'Order replacement part', completed: true },
+      { id: 'cl-1004-3', label: 'Install new hydraulic cylinder', completed: false },
+    ],
+    comments: [
+      { id: 'cmt-1004-1', message: 'Need to order replacement cylinder. ETA 2 days.', author: 'John Williams', timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString() },
+    ],
+    activityLog: [
+      { id: 'log-1004-1', text: 'Work order created', timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString() },
+      { id: 'log-1004-2', text: 'Assigned to John Williams', timestamp: new Date(Date.now() - 23 * 60 * 60 * 1000).toISOString() },
+      { id: 'log-1004-3', text: 'Status changed to In Progress', timestamp: new Date(Date.now() - 22 * 60 * 60 * 1000).toISOString() },
+      { id: 'log-1004-4', text: 'Status changed to Paused', timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString() },
+    ],
+  },
+  {
+    id: 'wo-1005',
+    title: 'Toilet running continuously',
+    description: 'Toilet in room 805 runs continuously after flushing. Likely flapper or fill valve issue.',
+    room: '805',
+    category: 'Bathroom',
+    priority: 'high',
+    status: 'completed',
+    reportedBy: 'hk001',
+    assignedTo: 'mnt001',
+    createdAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+    photos: [],
+    checklist: [
+      { id: 'cl-1005-1', label: 'Inspect flapper valve', completed: true },
+      { id: 'cl-1005-2', label: 'Check fill valve', completed: true },
+      { id: 'cl-1005-3', label: 'Replace faulty parts', completed: true },
+      { id: 'cl-1005-4', label: 'Test flush cycle', completed: true },
+    ],
+    comments: [
+      { id: 'cmt-1005-1', message: 'Flapper was worn out. Replaced with new one.', author: 'John Williams', timestamp: new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString() },
+      { id: 'cmt-1005-2', message: 'All working properly now.', author: 'John Williams', timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString() },
+    ],
+    activityLog: [
+      { id: 'log-1005-1', text: 'Work order created', timestamp: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString() },
+      { id: 'log-1005-2', text: 'Assigned to John Williams', timestamp: new Date(Date.now() - 47 * 60 * 60 * 1000).toISOString() },
+      { id: 'log-1005-3', text: 'Status changed to In Progress', timestamp: new Date(Date.now() - 26 * 60 * 60 * 1000).toISOString() },
+      { id: 'log-1005-4', text: 'All checklist items completed', timestamp: new Date(Date.now() - 24.5 * 60 * 60 * 1000).toISOString() },
+      { id: 'log-1005-5', text: 'Status changed to Completed', timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString() },
+    ],
+  },
+];
+
+export const technicians = [
+  { id: 'mnt001', name: 'John Williams', role: 'maintenance' },
+  { id: 'mnt002', name: 'Carlos Rodriguez', role: 'maintenance' },
+  { id: 'mnt003', name: 'Mike Thompson', role: 'maintenance' },
+];
+
+export const categories = ['Electrical', 'Plumbing', 'AC', 'Furniture', 'Bathroom', 'General'];
+
+export const priorities = ['low', 'medium', 'high', 'critical'];
+
+export const statuses = ['new', 'inprogress', 'paused', 'completed'];

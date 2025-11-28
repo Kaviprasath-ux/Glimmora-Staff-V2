@@ -1,123 +1,95 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { notifications as seedNotifications } from '../data/notifications';
 
-const StaffNotificationsContext = createContext();
+const StaffNotificationsContext = createContext(null);
+const STORAGE_KEY = 'glimmora_staff_notifications';
 
-export const useStaffNotifications = () => {
-  const context = useContext(StaffNotificationsContext);
-  if (!context) {
-    throw new Error('useStaffNotifications must be used within StaffNotificationsProvider');
+function generateId() {
+  return `notif-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+}
+
+function loadNotifications() {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      return JSON.parse(stored);
+    }
+  } catch (err) {
+    console.error('Failed to load notifications from localStorage', err);
   }
-  return context;
-};
+  return null;
+}
 
-const initialNotifications = [
-  {
-    id: 'NOTIF001',
-    type: 'task',
-    title: 'New Task Assigned',
-    message: 'Deep Clean Suite 305 has been assigned to you',
-    timestamp: '2025-11-20T08:00:00',
-    read: false,
-    priority: 'high',
-  },
-  {
-    id: 'NOTIF002',
-    type: 'room',
-    title: 'Room Ready for Inspection',
-    message: 'Room 412 is ready for quality inspection',
-    timestamp: '2025-11-20T11:45:00',
-    read: false,
-    priority: 'medium',
-  },
-  {
-    id: 'NOTIF003',
-    type: 'schedule',
-    title: 'Shift Reminder',
-    message: 'Your shift starts in 30 minutes',
-    timestamp: '2025-11-20T06:30:00',
-    read: true,
-    priority: 'low',
-  },
-  {
-    id: 'NOTIF004',
-    type: 'task',
-    title: 'Task Due Soon',
-    message: 'Turndown Service - Suite 501 is due at 6:00 PM',
-    timestamp: '2025-11-20T17:30:00',
-    read: false,
-    priority: 'high',
-  },
-  {
-    id: 'NOTIF005',
-    type: 'room',
-    title: 'VIP Guest Arrival',
-    message: 'VIP guest checking into Suite 305 at 2:00 PM',
-    timestamp: '2025-11-20T13:00:00',
-    read: true,
-    priority: 'high',
-  },
-];
+function saveNotifications(notifications) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(notifications));
+  } catch (err) {
+    console.error('Failed to save notifications to localStorage', err);
+  }
+}
 
-export const StaffNotificationsProvider = ({ children }) => {
+export function StaffNotificationsProvider({ children }) {
   const [notifications, setNotifications] = useState(() => {
-    const savedNotifications = localStorage.getItem('glimmora_staff_notifications');
-    return savedNotifications ? JSON.parse(savedNotifications) : initialNotifications;
+    const loaded = loadNotifications();
+    return loaded || seedNotifications.map(n => ({
+      ...n,
+      message: n.message || n.title,
+      timestamp: n.timestamp || new Date().toISOString(),
+      read: n.read ?? false,
+    }));
   });
 
   useEffect(() => {
-    localStorage.setItem('glimmora_staff_notifications', JSON.stringify(notifications));
+    saveNotifications(notifications);
   }, [notifications]);
 
-  const addNotification = (notification) => {
+  const addNotification = useCallback((notificationData) => {
     const newNotification = {
-      ...notification,
-      id: `NOTIF${String(notifications.length + 1).padStart(3, '0')}`,
+      id: generateId(),
+      type: notificationData.type || 'general',
+      title: notificationData.title,
+      message: notificationData.message || notificationData.title,
       timestamp: new Date().toISOString(),
       read: false,
     };
     setNotifications(prev => [newNotification, ...prev]);
     return newNotification;
-  };
+  }, []);
 
-  const markAsRead = (notificationId) => {
-    setNotifications(prev =>
-      prev.map(notif =>
-        notif.id === notificationId ? { ...notif, read: true } : notif
-      )
-    );
-  };
+  const markAsRead = useCallback((notificationId) => {
+    setNotifications(prev => prev.map(n => {
+      if (n.id === notificationId) {
+        return { ...n, read: true };
+      }
+      return n;
+    }));
+  }, []);
 
-  const markAllAsRead = () => {
-    setNotifications(prev =>
-      prev.map(notif => ({ ...notif, read: true }))
-    );
-  };
+  const markAllAsRead = useCallback(() => {
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+  }, []);
 
-  const deleteNotification = (notificationId) => {
-    setNotifications(prev => prev.filter(notif => notif.id !== notificationId));
-  };
+  const deleteNotification = useCallback((notificationId) => {
+    setNotifications(prev => prev.filter(n => n.id !== notificationId));
+  }, []);
 
-  const getUnreadCount = () => {
-    return notifications.filter(notif => !notif.read).length;
-  };
-
-  const getNotificationsByType = (type) => {
-    return notifications.filter(notif => notif.type === type);
-  };
-
-  const clearAllNotifications = () => {
+  const clearAllNotifications = useCallback(() => {
     setNotifications([]);
-  };
+  }, []);
+
+  const getUnreadCount = useCallback(() => {
+    return notifications.filter(n => !n.read).length;
+  }, [notifications]);
 
   const value = {
     notifications,
+    setNotifications,
     addNotification,
     markAsRead,
     markAllAsRead,
     deleteNotification,
-    getUnreadCount,
-    getNotificationsByType,
     clearAllNotifications,
+    getUnreadCount,
   };
 
   return (
@@ -125,4 +97,12 @@ export const StaffNotificationsProvider = ({ children }) => {
       {children}
     </StaffNotificationsContext.Provider>
   );
-};
+}
+
+export function useStaffNotifications() {
+  const context = useContext(StaffNotificationsContext);
+  if (!context) {
+    throw new Error('useStaffNotifications must be used within a StaffNotificationsProvider');
+  }
+  return context;
+}
