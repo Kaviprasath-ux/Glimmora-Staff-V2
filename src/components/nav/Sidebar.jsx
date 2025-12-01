@@ -100,26 +100,26 @@ const Sidebar = () => {
         `}
       >
         {/* Header */}
-        <div className="h-16 px-5 flex items-center justify-between border-b border-border">
+        <div className="h-[72px] px-4 flex items-center justify-between border-b border-border">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-white font-bold text-sm">G</span>
+            <div className="w-10 h-10 rounded-[10px] bg-primary flex items-center justify-center">
+              <span className="text-white font-bold text-base">G</span>
             </div>
             <div>
-              <h1 className="font-bold text-sm text-text">Glimmora</h1>
+              <h1 className="font-semibold text-[15px] text-text">Glimmora</h1>
               <p className="text-xs text-text-muted">{getRoleTitle(user.role)}</p>
             </div>
           </div>
           <button
             onClick={toggleSidebar}
-            className="lg:hidden p-1 rounded-lg hover:bg-neutral-dark"
+            className="lg:hidden p-2 rounded-[8px] hover:bg-primary-100 transition-colors"
           >
             <X className="w-5 h-5 text-text-muted" />
           </button>
         </div>
 
         {/* Navigation */}
-        <div className="flex-1 overflow-y-auto py-4 px-3">
+        <div className="flex-1 overflow-y-auto py-5 px-3">
           <MenuSection title="Main Menu">
             {navigationItems.main.map((item) => (
               <MenuItem

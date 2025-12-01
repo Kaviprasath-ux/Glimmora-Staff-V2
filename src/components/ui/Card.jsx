@@ -19,9 +19,9 @@ const Card = forwardRef(({
     <div
       ref={ref}
       className={`
-        bg-white rounded-[14px] shadow-[var(--shadow-soft)] border border-border
+        bg-white rounded-[24px] border border-border
         ${paddingStyles[padding]}
-        ${hover ? 'transition-all duration-200 hover:shadow-[var(--shadow-md)] hover:-translate-y-0.5 cursor-pointer' : ''}
+        ${hover ? 'transition-all duration-200 hover:-translate-y-0.5 cursor-pointer' : ''}
         ${onClick ? 'cursor-pointer' : ''}
         ${className}
       `}
@@ -118,7 +118,7 @@ export function StatCard({
           )}
         </div>
         {Icon && (
-          <div className={`p-3 rounded-[12px] ${colorStyles[color]}`}>
+          <div className={`p-3 rounded-[24px] ${colorStyles[color]}`}>
             <Icon className="w-5 h-5" />
           </div>
         )}

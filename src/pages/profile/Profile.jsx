@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import {
   User,
   Mail,
@@ -10,7 +11,10 @@ import {
   Edit2,
   Key,
   LogOut,
-  BadgeCheck
+  BadgeCheck,
+  Shield,
+  Timer,
+  CheckCircle
 } from 'lucide-react';
 import PageHeader from '../../layouts/PageHeader';
 import Card from '../../components/ui/Card';
@@ -19,6 +23,30 @@ import Input from '../../components/ui/Input';
 import { FormModal } from '../../components/ui/Modal';
 import { useAuth } from '../../context/AuthContext';
 import { useProfile } from '../../hooks/useStaffPortal';
+
+// Animation variants
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.08,
+      delayChildren: 0.1
+    }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 12 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.4,
+      ease: [0.16, 1, 0.3, 1]
+    }
+  }
+};
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -45,15 +73,6 @@ const Profile = () => {
       runner: 'Runner / Bell Staff'
     };
     return labels[role] || role;
-  };
-
-  const getRoleColor = (role) => {
-    const colors = {
-      housekeeping: 'bg-green/10 text-green',
-      maintenance: 'bg-primary/10 text-primary',
-      runner: 'bg-teal/10 text-teal'
-    };
-    return colors[role] || 'bg-neutral-dark text-text';
   };
 
   const formatTime = (timeString) => {
@@ -95,14 +114,12 @@ const Profile = () => {
   };
 
   const handleEditSubmit = () => {
-    // Update both auth context and staff portal context
     updateUser(editForm);
     updateProfile(editForm);
     setShowEditModal(false);
   };
 
   const handlePasswordSubmit = () => {
-    // In a real app, this would validate and update the password
     setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
     setShowPasswordModal(false);
   };
@@ -114,219 +131,281 @@ const Profile = () => {
 
   if (!user) return null;
 
-  // Merge auth user data with profile data for display
   const displayData = {
     ...profile,
     ...user
   };
 
   return (
-    <div>
+    <motion.div
+      initial="hidden"
+      animate="visible"
+      variants={containerVariants}
+    >
       <PageHeader
         title="My Profile"
         subtitle="Manage your account settings"
-        actions={
-          <Button variant="outline" icon={Edit2} onClick={() => {
-            setEditForm({
-              name: displayData.name,
-              email: displayData.email,
-              phone: displayData.phone || ''
-            });
-            setShowEditModal(true);
-          }}>
-            Edit Profile
-          </Button>
-        }
       />
+
+      {/* Quick Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <motion.div
+          variants={itemVariants}
+          className="bg-white rounded-[16px] border border-border p-4"
+        >
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-medium text-text-muted uppercase tracking-wider">Status</span>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+              profile?.clockedIn ? 'bg-success/10' : 'bg-neutral'
+            }`}>
+              <Clock className={`w-4 h-4 ${profile?.clockedIn ? 'text-success' : 'text-text-muted'}`} />
+            </div>
+          </div>
+          <span className={`text-lg font-bold ${profile?.clockedIn ? 'text-success' : 'text-text-muted'}`}>
+            {profile?.clockedIn ? 'Clocked In' : 'Off Duty'}
+          </span>
+        </motion.div>
+
+        <motion.div
+          variants={itemVariants}
+          className="bg-white rounded-[16px] border border-border p-4"
+        >
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-medium text-text-muted uppercase tracking-wider">Hours Today</span>
+            <div className="w-8 h-8 rounded-full bg-teal/10 flex items-center justify-center">
+              <Timer className="w-4 h-4 text-teal" />
+            </div>
+          </div>
+          <span className="text-lg font-bold text-text">{calculateHoursWorked()}</span>
+        </motion.div>
+
+        <motion.div
+          variants={itemVariants}
+          className="bg-white rounded-[16px] border border-border p-4"
+        >
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-medium text-text-muted uppercase tracking-wider">Role</span>
+            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+              <BadgeCheck className="w-4 h-4 text-primary" />
+            </div>
+          </div>
+          <span className="text-sm font-bold text-text">{getRoleLabel(displayData.role)}</span>
+        </motion.div>
+
+        <motion.div
+          variants={itemVariants}
+          className="bg-white rounded-[16px] border border-border p-4"
+        >
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-medium text-text-muted uppercase tracking-wider">Department</span>
+            <div className="w-8 h-8 rounded-full bg-gold/10 flex items-center justify-center">
+              <Building2 className="w-4 h-4 text-gold" />
+            </div>
+          </div>
+          <span className="text-sm font-bold text-text">{displayData.department || 'N/A'}</span>
+        </motion.div>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Profile Card */}
-        <div className="lg:col-span-1">
-          <Card className="text-center">
-            {/* Avatar */}
-            <div className="relative inline-block mb-4">
-              <div className="w-24 h-24 rounded-full bg-primary text-white flex items-center justify-center text-3xl font-bold mx-auto">
-                {getInitials(displayData.name)}
+        <motion.div variants={itemVariants} className="lg:col-span-1">
+          <Card>
+            {/* Header */}
+            <div className="flex items-center gap-3 pb-4 mb-5 border-b border-border">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <User className="w-5 h-5 text-primary" />
               </div>
-              {profile?.clockedIn && (
-                <div className="absolute bottom-0 right-0 w-6 h-6 bg-success rounded-full border-3 border-white flex items-center justify-center">
-                  <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
-                </div>
-              )}
+              <div>
+                <h2 className="text-lg font-semibold text-text">Profile</h2>
+                <p className="text-sm text-text-muted">Your account overview</p>
+              </div>
             </div>
 
-            <h2 className="text-xl font-bold text-text">{displayData.name}</h2>
-            <p className="text-sm text-text-light mb-3">{displayData.employeeId}</p>
+            {/* Avatar & Name */}
+            <div className="text-center mb-6">
+              <div className="relative inline-block mb-4">
+                <div className="w-20 h-20 rounded-full bg-primary text-white flex items-center justify-center text-2xl font-bold mx-auto">
+                  {getInitials(displayData.name)}
+                </div>
+                {profile?.clockedIn && (
+                  <div className="absolute bottom-0 right-0 w-5 h-5 bg-success rounded-full border-2 border-white flex items-center justify-center">
+                    <div className="w-2 h-2 bg-white rounded-full" />
+                  </div>
+                )}
+              </div>
 
-            <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full ${getRoleColor(displayData.role)}`}>
-              <BadgeCheck className="w-4 h-4" />
-              <span className="text-sm font-medium">{getRoleLabel(displayData.role)}</span>
+              <h3 className="text-lg font-bold text-text">{displayData.name}</h3>
+              <p className="text-sm text-text-muted">{displayData.employeeId}</p>
             </div>
 
             {/* Clock In/Out */}
-            <div className="mt-6 pt-6 border-t border-border">
+            <div className="pt-4 border-t border-border">
               {profile?.clockedIn ? (
-                <div>
+                <div className="text-center">
                   <div className="flex items-center justify-center gap-2 text-success mb-2">
-                    <div className="w-2 h-2 bg-success rounded-full animate-pulse" />
-                    <span className="font-medium">Clocked In</span>
+                    <CheckCircle className="w-4 h-4" />
+                    <span className="text-sm font-medium">Active since {formatClockInTime()}</span>
                   </div>
-                  <p className="text-sm text-text-light mb-1">Since {formatClockInTime()}</p>
-                  <p className="text-lg font-bold text-text mb-4">{calculateHoursWorked()} worked</p>
-                  <Button
-                    variant="danger"
-                    className="w-full"
-                    icon={Clock}
+                  <p className="text-2xl font-bold text-text mb-4">{calculateHoursWorked()}</p>
+                  <button
                     onClick={clockOut}
+                    className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-medium rounded-[8px] bg-danger text-white hover:bg-danger/90 transition-all"
                   >
+                    <Clock className="w-3.5 h-3.5" />
                     Clock Out
-                  </Button>
+                  </button>
                 </div>
               ) : (
-                <div>
-                  <p className="text-sm text-text-light mb-4">You are not clocked in</p>
-                  <Button
-                    variant="success"
-                    className="w-full"
-                    icon={Clock}
+                <div className="text-center">
+                  <p className="text-sm text-text-muted mb-4">You are not clocked in</p>
+                  <button
                     onClick={clockIn}
+                    className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-medium rounded-[8px] bg-success text-white hover:bg-success/90 transition-all"
                   >
+                    <Clock className="w-3.5 h-3.5" />
                     Clock In
-                  </Button>
+                  </button>
                 </div>
               )}
             </div>
           </Card>
-        </div>
+        </motion.div>
 
         {/* Details */}
         <div className="lg:col-span-2 space-y-6">
           {/* Personal Information */}
-          <Card>
-            <h3 className="text-lg font-semibold text-text mb-4">Personal Information</h3>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-[10px] bg-primary/10 flex items-center justify-center">
-                  <User className="w-5 h-5 text-primary" />
+          <motion.div variants={itemVariants}>
+            <Card>
+              {/* Header */}
+              <div className="flex items-center justify-between pb-4 mb-5 border-b border-border">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-teal/10 flex items-center justify-center">
+                    <User className="w-5 h-5 text-teal" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-text">Personal Information</h2>
+                    <p className="text-sm text-text-muted">Your contact details</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-xs text-text-muted">Full Name</p>
-                  <p className="font-medium text-text">{displayData.name}</p>
-                </div>
+                <button
+                  onClick={() => {
+                    setEditForm({
+                      name: displayData.name,
+                      email: displayData.email,
+                      phone: displayData.phone || ''
+                    });
+                    setShowEditModal(true);
+                  }}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium rounded-[8px] border border-border text-text-muted hover:text-text hover:border-primary-200 transition-colors"
+                >
+                  <Edit2 className="w-3.5 h-3.5" />
+                  Edit
+                </button>
               </div>
 
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-[10px] bg-teal/10 flex items-center justify-center">
-                  <Mail className="w-5 h-5 text-teal" />
+              {/* Info List */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between py-2">
+                  <span className="text-sm text-text-muted">Full Name</span>
+                  <span className="text-sm font-medium text-text">{displayData.name}</span>
                 </div>
-                <div>
-                  <p className="text-xs text-text-muted">Email</p>
-                  <p className="font-medium text-text">{displayData.email}</p>
+                <div className="flex items-center justify-between py-2 border-t border-border">
+                  <span className="text-sm text-text-muted">Email</span>
+                  <span className="text-sm font-medium text-text">{displayData.email}</span>
+                </div>
+                <div className="flex items-center justify-between py-2 border-t border-border">
+                  <span className="text-sm text-text-muted">Phone</span>
+                  <span className="text-sm font-medium text-text">{displayData.phone || '—'}</span>
+                </div>
+                <div className="flex items-center justify-between py-2 border-t border-border">
+                  <span className="text-sm text-text-muted">Department</span>
+                  <span className="text-sm font-medium text-text">{displayData.department || '—'}</span>
                 </div>
               </div>
+            </Card>
+          </motion.div>
 
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-[10px] bg-green/10 flex items-center justify-center">
-                  <Phone className="w-5 h-5 text-green" />
-                </div>
-                <div>
-                  <p className="text-xs text-text-muted">Phone</p>
-                  <p className="font-medium text-text">{displayData.phone || 'N/A'}</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-[10px] bg-gold/10 flex items-center justify-center">
+          {/* Work Information */}
+          <motion.div variants={itemVariants}>
+            <Card>
+              {/* Header */}
+              <div className="flex items-center gap-3 pb-4 mb-5 border-b border-border">
+                <div className="w-10 h-10 rounded-full bg-gold/10 flex items-center justify-center">
                   <Building2 className="w-5 h-5 text-gold" />
                 </div>
                 <div>
-                  <p className="text-xs text-text-muted">Department</p>
-                  <p className="font-medium text-text">{displayData.department}</p>
-                </div>
-              </div>
-            </div>
-          </Card>
-
-          {/* Work Information */}
-          <Card>
-            <h3 className="text-lg font-semibold text-text mb-4">Work Information</h3>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-[10px] bg-primary/10 flex items-center justify-center">
-                  <BadgeCheck className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-xs text-text-muted">Employee ID</p>
-                  <p className="font-medium text-text">{displayData.employeeId}</p>
+                  <h2 className="text-lg font-semibold text-text">Work Information</h2>
+                  <p className="text-sm text-text-muted">Your employment details</p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-[10px] bg-teal/10 flex items-center justify-center">
-                  <Calendar className="w-5 h-5 text-teal" />
+              {/* Info List */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between py-2">
+                  <span className="text-sm text-text-muted">Employee ID</span>
+                  <span className="text-sm font-medium text-text">{displayData.employeeId}</span>
                 </div>
-                <div>
-                  <p className="text-xs text-text-muted">Hire Date</p>
-                  <p className="font-medium text-text">
+                <div className="flex items-center justify-between py-2 border-t border-border">
+                  <span className="text-sm text-text-muted">Role</span>
+                  <span className="text-sm font-medium text-text">{getRoleLabel(displayData.role)}</span>
+                </div>
+                <div className="flex items-center justify-between py-2 border-t border-border">
+                  <span className="text-sm text-text-muted">Hire Date</span>
+                  <span className="text-sm font-medium text-text">
                     {displayData.hireDate ? new Date(displayData.hireDate).toLocaleDateString('en-US', {
                       month: 'long',
                       day: 'numeric',
                       year: 'numeric'
-                    }) : 'N/A'}
-                  </p>
+                    }) : '—'}
+                  </span>
                 </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-[10px] bg-green/10 flex items-center justify-center">
-                  <Clock className="w-5 h-5 text-green" />
-                </div>
-                <div>
-                  <p className="text-xs text-text-muted">Shift Hours</p>
-                  <p className="font-medium text-text">
+                <div className="flex items-center justify-between py-2 border-t border-border">
+                  <span className="text-sm text-text-muted">Shift Hours</span>
+                  <span className="text-sm font-medium text-text">
                     {formatTime(displayData.shiftStart)} - {formatTime(displayData.shiftEnd)}
-                  </p>
+                  </span>
+                </div>
+                <div className="flex items-center justify-between py-2 border-t border-border">
+                  <span className="text-sm text-text-muted">Supervisor</span>
+                  <span className="text-sm font-medium text-text">{displayData.supervisor || '—'}</span>
                 </div>
               </div>
-
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-[10px] bg-gold/10 flex items-center justify-center">
-                  <User className="w-5 h-5 text-gold" />
-                </div>
-                <div>
-                  <p className="text-xs text-text-muted">Supervisor</p>
-                  <p className="font-medium text-text">{displayData.supervisor || 'N/A'}</p>
-                </div>
-              </div>
-            </div>
-          </Card>
+            </Card>
+          </motion.div>
 
           {/* Account Settings */}
-          <Card>
-            <h3 className="text-lg font-semibold text-text mb-4">Account Settings</h3>
+          <motion.div variants={itemVariants}>
+            <Card>
+              {/* Header */}
+              <div className="flex items-center gap-3 pb-4 mb-5 border-b border-border">
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Shield className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-text">Account Settings</h2>
+                  <p className="text-sm text-text-muted">Security and authentication</p>
+                </div>
+              </div>
 
-            <div className="space-y-3">
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                icon={Key}
-                onClick={() => setShowPasswordModal(true)}
-              >
-                Change Password
-              </Button>
-
-              <Button
-                variant="outline"
-                className="w-full justify-start text-danger hover:bg-danger-light"
-                icon={LogOut}
-                onClick={handleLogout}
-              >
-                Sign Out
-              </Button>
-            </div>
-          </Card>
+              {/* Actions */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowPasswordModal(true)}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium rounded-[8px] border border-border text-text-muted hover:text-text hover:border-primary-200 transition-colors"
+                >
+                  <Key className="w-3.5 h-3.5" />
+                  Change Password
+                </button>
+                <button
+                  onClick={handleLogout}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium rounded-[8px] border border-border text-text-muted hover:text-danger hover:border-danger/30 hover:bg-danger/5 transition-colors"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  Sign Out
+                </button>
+              </div>
+            </Card>
+          </motion.div>
         </div>
       </div>
 
@@ -402,7 +481,7 @@ const Profile = () => {
           />
         </div>
       </FormModal>
-    </div>
+    </motion.div>
   );
 };
 

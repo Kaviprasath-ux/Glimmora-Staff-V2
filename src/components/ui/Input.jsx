@@ -120,27 +120,34 @@ export const Select = forwardRef(({
           {props.required && <span className="text-danger ml-1">*</span>}
         </label>
       )}
-      <select
-        ref={ref}
-        className={`
-          w-full px-3 py-2.5 rounded-[10px] border transition-all duration-200
-          text-text bg-white
-          focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary
-          disabled:bg-neutral-dark disabled:cursor-not-allowed
-          ${error ? 'border-danger focus:ring-danger/20 focus:border-danger' : 'border-border'}
-          ${className}
-        `}
-        {...props}
-      >
-        <option value="" disabled>
-          {placeholder}
-        </option>
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
+      <div className="relative">
+        <select
+          ref={ref}
+          className={`
+            w-full px-3 py-2.5 pr-10 rounded-[10px] border transition-all duration-200
+            text-text bg-white appearance-none cursor-pointer
+            focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary
+            disabled:bg-neutral-dark disabled:cursor-not-allowed
+            ${error ? 'border-danger focus:ring-danger/20 focus:border-danger' : 'border-border'}
+            ${className}
+          `}
+          {...props}
+        >
+          <option value="" disabled>
+            {placeholder}
           </option>
-        ))}
-      </select>
+          {options.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-text-muted">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      </div>
       {error && (
         <p className="text-xs text-danger mt-1">{error}</p>
       )}

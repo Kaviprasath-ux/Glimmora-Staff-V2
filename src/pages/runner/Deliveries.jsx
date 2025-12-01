@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import {
   Truck,
   Clock,
@@ -6,20 +7,56 @@ import {
   User,
   MapPin,
   MessageSquare,
-  ArrowRight
+  ArrowRight,
+  Play,
+  UtensilsCrossed,
+  Package,
+  Shirt,
+  Gift,
+  ClipboardList
 } from 'lucide-react';
 import PageHeader from '../../layouts/PageHeader';
 import Card from '../../components/ui/Card';
 import { StatusBadge, PriorityBadge } from '../../components/ui/Badge';
-import Button from '../../components/ui/Button';
 import { SearchInput } from '../../components/ui/Input';
 import { useRunner } from '../../hooks/useStaffPortal';
+
+// Animation variants
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.05,
+      delayChildren: 0.1
+    }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 12 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.3,
+      ease: [0.16, 1, 0.3, 1]
+    }
+  }
+};
 
 const Deliveries = () => {
   const { deliveries, stats, acceptDelivery, completeDelivery } = useRunner();
 
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  // Reset page when filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter, searchQuery]);
 
   const filteredDeliveries = useMemo(() => {
     return deliveries.filter(delivery => {
@@ -41,6 +78,13 @@ const Deliveries = () => {
       return priorityOrder[a.priority] - priorityOrder[b.priority];
     });
   }, [deliveries, searchQuery, statusFilter]);
+
+  // Pagination
+  const totalPages = Math.ceil(filteredDeliveries.length / itemsPerPage);
+  const paginatedDeliveries = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredDeliveries.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredDeliveries, currentPage]);
 
   const formatTime = (timestamp) => {
     if (!timestamp) return 'N/A';
@@ -73,17 +117,18 @@ const Deliveries = () => {
   };
 
   const getTypeIcon = (type) => {
+    const iconClass = "w-5 h-5 text-text-muted";
     switch (type) {
       case 'room_service':
-        return '🍽️';
+        return <UtensilsCrossed className={iconClass} />;
       case 'package':
-        return '📦';
+        return <Package className={iconClass} />;
       case 'laundry':
-        return '👔';
+        return <Shirt className={iconClass} />;
       case 'amenity':
-        return '🎁';
+        return <Gift className={iconClass} />;
       default:
-        return '📋';
+        return <ClipboardList className={iconClass} />;
     }
   };
 
@@ -108,204 +153,332 @@ const Deliveries = () => {
   };
 
   return (
-    <div>
+    <motion.div
+      initial="hidden"
+      animate="visible"
+      variants={containerVariants}
+    >
       <PageHeader
         title="Deliveries"
         subtitle={`${stats.pendingDeliveries + stats.inTransitDeliveries} active deliveries`}
       />
 
-      {/* Status Summary */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        <div
-          className={`p-4 rounded-[14px] cursor-pointer transition-all ${
-            statusFilter === 'pending' ? 'bg-warning-light ring-2 ring-warning' : 'bg-white border border-border hover:border-warning'
-          }`}
-          onClick={() => setStatusFilter(statusFilter === 'pending' ? 'all' : 'pending')}
-        >
-          <div className="flex items-center gap-2">
-            <Clock className="w-5 h-5 text-warning" />
-            <span className="text-2xl font-bold text-text">{stats.pendingDeliveries}</span>
+      {/* Main Card */}
+      <Card>
+        {/* Header */}
+        <div className="flex items-center justify-between pb-4 mb-5 border-b border-border">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-teal/10 flex items-center justify-center">
+              <Truck className="w-5 h-5 text-teal" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-text">All Deliveries</h2>
+              <p className="text-sm text-text-muted">{filteredDeliveries.length} deliveries</p>
+            </div>
           </div>
-          <p className="text-sm text-text-light mt-1">Pending</p>
         </div>
 
-        <div
-          className={`p-4 rounded-[14px] cursor-pointer transition-all ${
-            statusFilter === 'in_transit' ? 'bg-info-light ring-2 ring-info' : 'bg-white border border-border hover:border-info'
-          }`}
-          onClick={() => setStatusFilter(statusFilter === 'in_transit' ? 'all' : 'in_transit')}
-        >
-          <div className="flex items-center gap-2">
-            <Truck className="w-5 h-5 text-info" />
-            <span className="text-2xl font-bold text-text">{stats.inTransitDeliveries}</span>
+        {/* Search and Filters */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 mb-5">
+          <div className="flex-1">
+            <SearchInput
+              placeholder="Search deliveries..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onClear={() => setSearchQuery('')}
+            />
           </div>
-          <p className="text-sm text-text-light mt-1">In Transit</p>
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={() => setStatusFilter('all')}
+              className={`px-3 py-2 text-xs font-medium rounded-[8px] transition-colors ${
+                statusFilter === 'all'
+                  ? 'bg-primary text-white'
+                  : 'bg-neutral text-text-muted hover:bg-primary-100'
+              }`}
+            >
+              All
+            </button>
+            <button
+              onClick={() => setStatusFilter('pending')}
+              className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-[8px] transition-colors ${
+                statusFilter === 'pending'
+                  ? 'bg-primary text-white'
+                  : 'bg-neutral text-text-muted hover:bg-primary-100'
+              }`}
+            >
+              Pending
+              <span className={`px-1.5 py-0.5 rounded text-[10px] ${
+                statusFilter === 'pending' ? 'bg-white/20' : 'bg-warning/10 text-warning'
+              }`}>
+                {stats.pendingDeliveries}
+              </span>
+            </button>
+            <button
+              onClick={() => setStatusFilter('in_transit')}
+              className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-[8px] transition-colors ${
+                statusFilter === 'in_transit'
+                  ? 'bg-primary text-white'
+                  : 'bg-neutral text-text-muted hover:bg-primary-100'
+              }`}
+            >
+              In Transit
+              <span className={`px-1.5 py-0.5 rounded text-[10px] ${
+                statusFilter === 'in_transit' ? 'bg-white/20' : 'bg-teal/10 text-teal'
+              }`}>
+                {stats.inTransitDeliveries}
+              </span>
+            </button>
+            <button
+              onClick={() => setStatusFilter('delivered')}
+              className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-[8px] transition-colors ${
+                statusFilter === 'delivered'
+                  ? 'bg-primary text-white'
+                  : 'bg-neutral text-text-muted hover:bg-primary-100'
+              }`}
+            >
+              Delivered
+              <span className={`px-1.5 py-0.5 rounded text-[10px] ${
+                statusFilter === 'delivered' ? 'bg-white/20' : 'bg-success/10 text-success'
+              }`}>
+                {stats.deliveredDeliveries}
+              </span>
+            </button>
+          </div>
         </div>
 
-        <div
-          className={`p-4 rounded-[14px] cursor-pointer transition-all ${
-            statusFilter === 'delivered' ? 'bg-success-light ring-2 ring-success' : 'bg-white border border-border hover:border-success'
-          }`}
-          onClick={() => setStatusFilter(statusFilter === 'delivered' ? 'all' : 'delivered')}
-        >
-          <div className="flex items-center gap-2">
-            <CheckCircle className="w-5 h-5 text-success" />
-            <span className="text-2xl font-bold text-text">{stats.deliveredDeliveries}</span>
+        {/* Deliveries List */}
+        {filteredDeliveries.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="w-16 h-16 rounded-full bg-neutral flex items-center justify-center mx-auto mb-4">
+              <Truck className="w-8 h-8 text-text-muted" />
+            </div>
+            <h3 className="text-lg font-semibold text-text mb-2">No deliveries found</h3>
+            <p className="text-sm text-text-muted">New deliveries will appear here</p>
           </div>
-          <p className="text-sm text-text-light mt-1">Delivered</p>
-        </div>
-      </div>
+        ) : (
+          <motion.div
+            key={statusFilter}
+            className="space-y-4"
+            initial="hidden"
+            animate="visible"
+            variants={containerVariants}
+          >
+            {paginatedDeliveries.map((delivery) => {
+              const timeDiff = getDeliveryTimeDiff(delivery.estimatedDelivery);
 
-      {/* Search */}
-      <div className="mb-6">
-        <SearchInput
-          placeholder="Search deliveries..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          onClear={() => setSearchQuery('')}
-        />
-      </div>
+              return (
+                <motion.div
+                  key={delivery.id}
+                  variants={itemVariants}
+                  className={`p-5 rounded-[16px] border transition-all relative overflow-hidden ${
+                    delivery.status === 'delivered'
+                      ? 'bg-success/5 border-success/20'
+                      : delivery.status === 'in_transit'
+                      ? 'bg-teal/5 border-teal/20'
+                      : delivery.priority === 'urgent'
+                      ? 'bg-danger/5 border-danger/20'
+                      : 'bg-white border-border hover:border-primary/30 hover:shadow-sm'
+                  }`}
+                >
+                  {/* Status indicator - only for in_transit */}
+                  {delivery.status === 'in_transit' && (
+                    <div className="absolute top-0 left-0 w-full h-1 bg-teal" />
+                  )}
 
-      {/* Deliveries List */}
-      {filteredDeliveries.length === 0 ? (
-        <Card className="text-center py-12">
-          <Truck className="w-16 h-16 text-text-muted mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-text mb-2">No deliveries found</h3>
-          <p className="text-text-light">New deliveries will appear here</p>
-        </Card>
-      ) : (
-        <div className="space-y-4">
-          {filteredDeliveries.map((delivery) => {
-            const timeDiff = getDeliveryTimeDiff(delivery.estimatedDelivery);
+                  <div className="flex items-start gap-4">
+                    {/* Type Icon */}
+                    <div className="w-12 h-12 rounded-xl bg-neutral flex items-center justify-center shrink-0">
+                      {getTypeIcon(delivery.type)}
+                    </div>
 
-            return (
-              <Card key={delivery.id} className="relative overflow-hidden">
-                {/* Status indicator */}
-                {delivery.status === 'in_transit' && (
-                  <div className="absolute top-0 left-0 w-full h-1 bg-info" />
-                )}
-
-                <div className="flex items-start gap-4">
-                  {/* Type Icon */}
-                  <div className="text-3xl flex-shrink-0">{getTypeIcon(delivery.type)}</div>
-
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-lg font-semibold text-text">Room {delivery.room}</span>
-                          <span className="text-sm text-teal font-medium">{getTypeLabel(delivery.type)}</span>
-                        </div>
-                        <div className="flex items-center gap-2 mt-1">
-                          <StatusBadge status={delivery.status} />
-                          {delivery.priority !== 'normal' && <PriorityBadge priority={delivery.priority} />}
-                        </div>
-                      </div>
-
-                      <div className="flex gap-2">
-                        {delivery.status === 'pending' && (
-                          <Button onClick={() => handleAccept(delivery)}>
-                            Accept
-                          </Button>
-                        )}
-                        {delivery.status === 'in_transit' && (
-                          <Button variant="success" onClick={() => handleComplete(delivery)}>
-                            Mark Delivered
-                          </Button>
-                        )}
-                        {delivery.status === 'delivered' && (
-                          <div className="flex items-center gap-2 text-success">
-                            <CheckCircle className="w-5 h-5" />
-                            <span className="font-medium">Delivered</span>
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      {/* Header Row */}
+                      <div className="flex items-start justify-between gap-4 mb-3">
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap mb-1">
+                            <span className="text-lg font-semibold text-text">Room {delivery.room}</span>
+                            <span className="text-xs font-medium text-teal bg-teal/10 px-2 py-0.5 rounded-full">
+                              {getTypeLabel(delivery.type)}
+                            </span>
                           </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Items */}
-                    <div className="mt-3 p-3 bg-neutral rounded-[10px]">
-                      <p className="text-sm font-medium text-text">Items:</p>
-                      <p className="text-sm text-text-light">{delivery.items}</p>
-                    </div>
-
-                    {/* Route */}
-                    <div className="mt-4 p-3 bg-teal/5 rounded-[10px] border border-teal/20">
-                      <div className="flex items-center gap-3">
-                        <div className="flex-1">
-                          <p className="text-xs text-text-muted">From</p>
-                          <p className="text-sm font-medium text-text">{delivery.origin}</p>
+                          <div className="flex items-center gap-2">
+                            <StatusBadge status={delivery.status} />
+                            {delivery.priority !== 'normal' && <PriorityBadge priority={delivery.priority} />}
+                            {delivery.status !== 'delivered' && timeDiff && (
+                              <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                                timeDiff.isLate
+                                  ? 'bg-danger/10 text-danger'
+                                  : 'bg-success/10 text-success'
+                              }`}>
+                                {timeDiff.text}
+                              </span>
+                            )}
+                          </div>
                         </div>
-                        <ArrowRight className="w-5 h-5 text-teal flex-shrink-0" />
-                        <div className="flex-1">
-                          <p className="text-xs text-text-muted">To</p>
-                          <p className="text-sm font-medium text-text">{delivery.destination}</p>
+
+                        <div className="shrink-0">
+                          {delivery.status === 'pending' && (
+                            <button
+                              onClick={() => handleAccept(delivery)}
+                              className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium rounded-[8px] bg-primary text-white hover:bg-primary-dark transition-all"
+                            >
+                              <Play className="w-3.5 h-3.5" />
+                              Accept
+                            </button>
+                          )}
+                          {delivery.status === 'in_transit' && (
+                            <button
+                              onClick={() => handleComplete(delivery)}
+                              className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium rounded-[8px] bg-success text-white hover:bg-success/90 transition-all"
+                            >
+                              <CheckCircle className="w-3.5 h-3.5" />
+                              Delivered
+                            </button>
+                          )}
+                          {delivery.status === 'delivered' && (
+                            <div className="flex items-center gap-2 text-success">
+                              <CheckCircle className="w-5 h-5" />
+                              <span className="text-sm font-medium">Delivered</span>
+                            </div>
+                          )}
                         </div>
                       </div>
-                    </div>
 
-                    {/* Details Grid */}
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-4 text-sm">
-                      <div className="flex items-center gap-2">
-                        <User className="w-4 h-4 text-text-muted" />
-                        <div>
-                          <p className="text-text-muted text-xs">Guest</p>
-                          <p className="text-text font-medium">{delivery.guestName}</p>
+                      {/* Items */}
+                      <div className="p-3 bg-neutral/50 rounded-[10px] mb-4">
+                        <p className="text-xs font-medium text-text-muted mb-1">Items</p>
+                        <p className="text-sm text-text">{delivery.items}</p>
+                      </div>
+
+                      {/* Route */}
+                      <div className="p-3 bg-teal/5 rounded-[10px] border border-teal/10 mb-4">
+                        <div className="flex items-center gap-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <MapPin className="w-3.5 h-3.5 text-teal" />
+                              <p className="text-[10px] font-medium text-text-muted uppercase tracking-wider">From</p>
+                            </div>
+                            <p className="text-sm font-medium text-text">{delivery.origin}</p>
+                          </div>
+                          <div className="w-8 h-8 rounded-full bg-teal/10 flex items-center justify-center shrink-0">
+                            <ArrowRight className="w-4 h-4 text-teal" />
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <MapPin className="w-3.5 h-3.5 text-teal" />
+                              <p className="text-[10px] font-medium text-text-muted uppercase tracking-wider">To</p>
+                            </div>
+                            <p className="text-sm font-medium text-text">{delivery.destination}</p>
+                          </div>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-text-muted" />
-                        <div>
-                          <p className="text-text-muted text-xs">ETA</p>
-                          <p className="text-text font-medium">{formatTime(delivery.estimatedDelivery)}</p>
-                        </div>
-                      </div>
-
-                      {delivery.status !== 'delivered' && timeDiff && (
-                        <div className="flex items-center gap-2">
-                          <Clock className={`w-4 h-4 ${timeDiff.isLate ? 'text-danger' : 'text-success'}`} />
+                      {/* Details Grid */}
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
+                        <div className="flex items-start gap-2">
+                          <User className="w-4 h-4 text-text-muted mt-0.5" />
                           <div>
-                            <p className="text-text-muted text-xs">Time Status</p>
-                            <p className={`font-medium ${timeDiff.isLate ? 'text-danger' : 'text-success'}`}>
-                              {timeDiff.text}
-                            </p>
+                            <p className="text-[10px] font-medium text-text-muted uppercase tracking-wider">Guest</p>
+                            <p className="text-sm text-text">{delivery.guestName}</p>
                           </div>
                         </div>
-                      )}
-                    </div>
 
-                    {/* Special Instructions */}
-                    {delivery.specialInstructions && (
-                      <div className="mt-4 p-3 bg-gold/10 rounded-[10px] border border-gold/20">
-                        <div className="flex items-center gap-2 mb-1">
-                          <MessageSquare className="w-4 h-4 text-gold" />
-                          <span className="text-xs font-medium text-gold">Special Instructions</span>
+                        <div className="flex items-start gap-2">
+                          <Clock className="w-4 h-4 text-text-muted mt-0.5" />
+                          <div>
+                            <p className="text-[10px] font-medium text-text-muted uppercase tracking-wider">ETA</p>
+                            <p className="text-sm text-text">{formatTime(delivery.estimatedDelivery)}</p>
+                          </div>
                         </div>
-                        <p className="text-sm text-text-light">{delivery.specialInstructions}</p>
-                      </div>
-                    )}
 
-                    {/* Timestamps */}
-                    <div className="flex items-center justify-between mt-4 pt-4 border-t border-border text-xs text-text-muted">
-                      <div className="flex items-center gap-4">
-                        <span>Ordered: {formatDate(delivery.orderedAt)}</span>
                         {delivery.assignedTo && (
-                          <span>Runner: <span className="text-text font-medium">{delivery.assignedTo}</span></span>
+                          <div className="flex items-start gap-2">
+                            <Truck className="w-4 h-4 text-text-muted mt-0.5" />
+                            <div>
+                              <p className="text-[10px] font-medium text-text-muted uppercase tracking-wider">Runner</p>
+                              <p className="text-sm text-text">{delivery.assignedTo}</p>
+                            </div>
+                          </div>
                         )}
                       </div>
-                      {delivery.deliveredAt && (
-                        <span className="text-success">Delivered: {formatDate(delivery.deliveredAt)}</span>
+
+                      {/* Special Instructions */}
+                      {delivery.specialInstructions && (
+                        <div className="p-3 bg-gold/10 rounded-[10px] border border-gold/20 mb-4">
+                          <div className="flex items-center gap-2 mb-1">
+                            <MessageSquare className="w-3.5 h-3.5 text-gold" />
+                            <span className="text-xs font-medium text-gold">Special Instructions</span>
+                          </div>
+                          <p className="text-sm text-text-muted">{delivery.specialInstructions}</p>
+                        </div>
                       )}
+
+                      {/* Footer */}
+                      <div className="flex items-center justify-between pt-3 border-t border-border text-xs text-text-muted">
+                        <span>Ordered: {formatDate(delivery.orderedAt)}</span>
+                        {delivery.deliveredAt && (
+                          <span className="text-success font-medium">Delivered: {formatDate(delivery.deliveredAt)}</span>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </Card>
-            );
-          })}
-        </div>
-      )}
-    </div>
+                </motion.div>
+              );
+            })}
+          </motion.div>
+        )}
+
+        {/* Pagination */}
+        {filteredDeliveries.length > itemsPerPage && (
+          <div className="flex items-center justify-between pt-5 mt-5 border-t border-border">
+            <p className="text-sm text-text-muted">
+              Showing {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, filteredDeliveries.length)} of {filteredDeliveries.length}
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className={`px-3 py-1.5 text-sm font-medium rounded-[8px] border transition-colors ${
+                  currentPage === 1
+                    ? 'border-border text-text-muted cursor-not-allowed opacity-50'
+                    : 'border-border text-text hover:border-primary-200 hover:bg-primary-50'
+                }`}
+              >
+                Previous
+              </button>
+
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={`w-8 h-8 text-sm font-medium rounded-[8px] transition-colors ${
+                    currentPage === page
+                      ? 'bg-primary text-white'
+                      : 'text-text-muted hover:bg-primary-100'
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
+
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className={`px-3 py-1.5 text-sm font-medium rounded-[8px] border transition-colors ${
+                  currentPage === totalPages
+                    ? 'border-border text-text-muted cursor-not-allowed opacity-50'
+                    : 'border-border text-text hover:border-primary-200 hover:bg-primary-50'
+                }`}
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
+      </Card>
+    </motion.div>
   );
 };
 

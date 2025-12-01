@@ -8,7 +8,10 @@ import {
   Play,
   CheckCircle,
   ChevronRight,
-  Sparkles
+  Sparkles,
+  User,
+  MessageSquare,
+  ArrowRight
 } from 'lucide-react';
 import { DashboardHeader } from '../../layouts/PageHeader';
 import Card, { StatCard } from '../../components/ui/Card';
@@ -40,8 +43,24 @@ const HousekeepingDashboard = () => {
   const todaysRooms = useMemo(() => {
     return rooms
       .filter(r => r.status === 'dirty' || r.status === 'in_progress')
-      .slice(0, 4);
+      .sort((a, b) => {
+        // Sort by priority first
+        const priorityOrder = { urgent: 0, high: 1, normal: 2, low: 3 };
+        const priorityDiff = priorityOrder[a.priority] - priorityOrder[b.priority];
+        if (priorityDiff !== 0) return priorityDiff;
+        // Then by status (in_progress first)
+        const statusOrder = { in_progress: 0, dirty: 1 };
+        return statusOrder[a.status] - statusOrder[b.status];
+      })
+      .slice(0, 5);
   }, [rooms]);
+
+  // Calculate checklist progress for a room
+  const getChecklistProgress = (room) => {
+    if (!room.checklist?.length) return 0;
+    const completed = room.checklist.filter(c => c.completed).length;
+    return Math.round((completed / room.checklist.length) * 100);
+  };
 
   const activeTasks = useMemo(() => {
     return tasks
@@ -71,7 +90,7 @@ const HousekeepingDashboard = () => {
       <DashboardHeader name={profile?.name} />
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
         <StatCard
           title="Rooms Cleaned Today"
           value={stats.cleanRooms}
@@ -102,17 +121,28 @@ const HousekeepingDashboard = () => {
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Today's Assigned Rooms */}
-        <div className="lg:col-span-2">
+      {/* Rooms Needing Attention - Full Width */}
+      <div className="mb-6">
+        <div>
           <Card>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-text">Today's Assigned Rooms</h2>
+            {/* Header */}
+            <div className="flex items-center justify-between pb-4 mb-5 border-b border-border">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <BedDouble className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-text">Rooms Needing Attention</h2>
+                  <p className="text-sm text-text-muted">
+                    {stats.dirtyRooms + stats.inProgressRooms} pending · {stats.cleanRooms} completed today
+                  </p>
+                </div>
+              </div>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => navigate('/housekeeping/rooms')}
-                icon={ChevronRight}
+                icon={ArrowRight}
                 iconPosition="right"
               >
                 View All
@@ -120,186 +150,459 @@ const HousekeepingDashboard = () => {
             </div>
 
             {todaysRooms.length === 0 ? (
-              <div className="text-center py-8">
-                <BedDouble className="w-12 h-12 text-text-muted mx-auto mb-3" />
-                <p className="text-text-light">No pending rooms</p>
+              <div className="text-center py-16">
+                <div className="w-20 h-20 rounded-full bg-success/10 flex items-center justify-center mx-auto mb-4">
+                  <Sparkles className="w-10 h-10 text-success" />
+                </div>
+                <h3 className="text-lg font-semibold text-text mb-2">All Caught Up!</h3>
+                <p className="text-sm text-text-light max-w-xs mx-auto">
+                  Great work! All rooms have been serviced. Check back later for new assignments.
+                </p>
               </div>
             ) : (
-              <div className="space-y-3">
-                {todaysRooms.map((room) => (
-                  <div
-                    key={room.id}
-                    className="flex items-center gap-4 p-4 rounded-[12px] bg-neutral hover:bg-neutral-dark transition-colors cursor-pointer"
-                    onClick={() => navigate(`/housekeeping/rooms/${room.id}`)}
-                  >
-                    <div className="w-12 h-12 rounded-[10px] bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      <BedDouble className="w-6 h-6 text-primary" />
-                    </div>
+              <div className="overflow-hidden rounded-[16px] border border-border">
+                {/* Table Header */}
+                <div className="grid grid-cols-12 gap-4 px-4 py-3 bg-neutral/50 border-b border-border text-xs font-medium text-text-muted uppercase tracking-wide">
+                  <div className="col-span-4">Room</div>
+                  <div className="col-span-2">Status</div>
+                  <div className="col-span-2">Check-in</div>
+                  <div className="col-span-2">Progress</div>
+                  <div className="col-span-2 text-right">Action</div>
+                </div>
 
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-text">Room {room.roomNumber}</span>
-                        <StatusBadge status={room.status} />
-                        {room.priority === 'urgent' && <PriorityBadge priority="urgent" />}
-                      </div>
-                      <div className="flex items-center gap-3 mt-1 text-sm text-text-light">
-                        <span>{room.type}</span>
-                        <span>•</span>
-                        <span>Check-in: {room.nextCheckin || 'TBD'}</span>
-                      </div>
-                      {room.specialRequests && (
-                        <p className="text-xs text-gold mt-1 truncate">
-                          Note: {room.specialRequests}
-                        </p>
-                      )}
-                    </div>
+                {/* Room Rows */}
+                <div className="divide-y divide-border">
+                  {todaysRooms.map((room) => {
+                    const progress = getChecklistProgress(room);
+                    const isUrgent = room.priority === 'urgent' || room.priority === 'high';
 
-                    <div className="flex items-center gap-2">
-                      {room.status === 'dirty' && (
-                        <Button
-                          size="sm"
-                          icon={Play}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleStartRoom(room);
-                          }}
-                        >
-                          Start
-                        </Button>
-                      )}
-                      <ChevronRight className="w-5 h-5 text-text-muted" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </Card>
-        </div>
+                    return (
+                      <div
+                        key={room.id}
+                        className="grid grid-cols-12 gap-4 px-4 py-4 items-center hover:bg-neutral/30 transition-colors cursor-pointer group"
+                        onClick={() => navigate(`/housekeeping/rooms/${room.id}`)}
+                      >
+                        {/* Room Info */}
+                        <div className="col-span-4 flex items-center gap-3">
+                          <div className={`
+                            w-12 h-12 rounded-[12px] flex items-center justify-center font-bold text-lg
+                            ${isUrgent ? 'bg-danger/10 text-danger' :
+                              room.status === 'in_progress' ? 'bg-warning/10 text-warning' :
+                              'bg-primary/10 text-primary'}
+                          `}>
+                            {room.roomNumber}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-text">{room.type}</span>
+                              {isUrgent && (
+                                <span className="w-2 h-2 rounded-full bg-danger animate-pulse" />
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 text-sm text-text-muted">
+                              <span>Floor {room.floor}</span>
+                              {room.guestName && (
+                                <>
+                                  <span>·</span>
+                                  <span className="truncate">{room.guestName}</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </div>
 
-        {/* Quick Actions & Notifications */}
-        <div className="space-y-6">
-          {/* Quick Actions */}
-          <Card>
-            <h2 className="text-lg font-semibold text-text mb-4">Quick Actions</h2>
-            <div className="space-y-2">
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                icon={Play}
-                onClick={() => {
-                  const nextRoom = rooms.find(r => r.status === 'dirty');
-                  if (nextRoom) handleStartRoom(nextRoom);
-                }}
-              >
-                Start Next Room
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                icon={ClipboardList}
-                onClick={() => navigate('/housekeeping/tasks')}
-              >
-                View All Tasks
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                icon={AlertTriangle}
-                onClick={() => navigate('/housekeeping/rooms?priority=urgent')}
-              >
-                Urgent Rooms ({stats.urgentRooms})
-              </Button>
-            </div>
-          </Card>
+                        {/* Status */}
+                        <div className="col-span-2">
+                          <span className={`
+                            inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium
+                            ${room.status === 'dirty' ? 'bg-danger/10 text-danger' :
+                              room.status === 'in_progress' ? 'bg-warning/10 text-warning' :
+                              'bg-success/10 text-success'}
+                          `}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${
+                              room.status === 'dirty' ? 'bg-danger' :
+                              room.status === 'in_progress' ? 'bg-warning' :
+                              'bg-success'
+                            }`} />
+                            {room.status === 'dirty' ? 'Needs Service' :
+                             room.status === 'in_progress' ? 'In Progress' : 'Ready'}
+                          </span>
+                        </div>
 
-          {/* Active Tasks */}
-          <Card>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-text">Active Tasks</h2>
-              <Button
-                variant="link"
-                size="sm"
-                onClick={() => navigate('/housekeeping/tasks')}
-              >
-                View All
-              </Button>
-            </div>
+                        {/* Check-in Time */}
+                        <div className="col-span-2">
+                          {room.nextCheckin ? (
+                            <div className="flex items-center gap-1.5 text-sm">
+                              <Clock className="w-4 h-4 text-text-muted" />
+                              <span className="text-text">{room.nextCheckin}</span>
+                            </div>
+                          ) : (
+                            <span className="text-sm text-text-muted">—</span>
+                          )}
+                        </div>
 
-            {activeTasks.length === 0 ? (
-              <div className="text-center py-4">
-                <CheckCircle className="w-8 h-8 text-success mx-auto mb-2" />
-                <p className="text-sm text-text-light">All tasks completed!</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {activeTasks.map((task) => (
-                  <div
-                    key={task.id}
-                    className="p-3 rounded-[10px] bg-neutral hover:bg-neutral-dark transition-colors cursor-pointer"
-                    onClick={() => navigate('/housekeeping/tasks')}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-text truncate">{task.title}</p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className="text-xs text-text-light">Room {task.room}</span>
-                          <PriorityBadge priority={task.priority} />
+                        {/* Progress */}
+                        <div className="col-span-2">
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1 h-2 bg-neutral-dark rounded-full overflow-hidden">
+                              <div
+                                className={`h-full rounded-full transition-all ${
+                                  progress === 100 ? 'bg-success' :
+                                  progress > 50 ? 'bg-teal' :
+                                  progress > 0 ? 'bg-warning' : 'bg-neutral-dark'
+                                }`}
+                                style={{ width: `${progress}%` }}
+                              />
+                            </div>
+                            <span className="text-xs font-medium text-text-muted w-8">{progress}%</span>
+                          </div>
+                        </div>
+
+                        {/* Action */}
+                        <div className="col-span-2 flex items-center justify-end gap-2">
+                          {room.status === 'dirty' ? (
+                            <Button
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleStartRoom(room);
+                              }}
+                            >
+                              Start
+                            </Button>
+                          ) : room.status === 'in_progress' ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/housekeeping/rooms/${room.id}`);
+                              }}
+                            >
+                              Continue
+                            </Button>
+                          ) : null}
+                          <ChevronRight className="w-4 h-4 text-text-muted opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
                       </div>
-                      {task.status === 'todo' && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          icon={Play}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleStartTask(task);
-                          }}
-                        />
-                      )}
+                    );
+                  })}
+                </div>
+
+                {/* Special Requests Banner (if any room has special requests) */}
+                {todaysRooms.some(r => r.specialRequests) && (
+                  <div className="px-4 py-3 bg-gold/5 border-t border-gold/20">
+                    <div className="flex items-center gap-2 text-sm">
+                      <MessageSquare className="w-4 h-4 text-gold" />
+                      <span className="font-medium text-gold">Special requests pending</span>
+                      <span className="text-text-muted">
+                        — {todaysRooms.filter(r => r.specialRequests).length} room(s) have notes
+                      </span>
                     </div>
                   </div>
-                ))}
+                )}
               </div>
             )}
-          </Card>
 
-          {/* Recent Notifications */}
-          <Card>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-text">Recent Alerts</h2>
-              <Button
-                variant="link"
-                size="sm"
-                onClick={() => navigate('/notifications')}
+            {/* Show more indicator */}
+            {rooms.filter(r => r.status === 'dirty' || r.status === 'in_progress').length > 5 && (
+              <button
+                onClick={() => navigate('/housekeeping/rooms')}
+                className="w-full mt-4 py-3 text-sm font-medium text-primary hover:text-primary-dark
+                           border border-dashed border-primary/30 hover:border-primary/50 rounded-[12px] transition-colors"
               >
-                View All
-              </Button>
-            </div>
-
-            {recentNotifications.length === 0 ? (
-              <p className="text-sm text-text-light text-center py-4">No new alerts</p>
-            ) : (
-              <div className="space-y-3">
-                {recentNotifications.map((notif) => (
-                  <div
-                    key={notif.id}
-                    className={`
-                      p-3 rounded-[10px] border-l-3
-                      ${notif.priority === 'urgent' ? 'border-l-danger bg-danger-light/30' :
-                        notif.priority === 'high' ? 'border-l-warning bg-warning-light/30' :
-                        'border-l-primary bg-primary/5'}
-                    `}
-                  >
-                    <p className="text-sm font-medium text-text">{notif.title}</p>
-                    <p className="text-xs text-text-light mt-0.5 line-clamp-1">{notif.message}</p>
-                  </div>
-                ))}
-              </div>
+                View {rooms.filter(r => r.status === 'dirty' || r.status === 'in_progress').length - 5} more rooms
+              </button>
             )}
           </Card>
         </div>
       </div>
+
+      {/* Quick Actions & Active Tasks - Side by Side */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        {/* Quick Actions */}
+        <Card>
+          <div className="flex items-center justify-between pb-4 mb-5 border-b border-border">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <Sparkles className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-text">Quick Actions</h2>
+                <p className="text-sm text-text-muted">Get started with common tasks</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Primary Action - Start Next Room */}
+          {(() => {
+            const nextRoom = rooms.find(r => r.status === 'dirty');
+            const hasNextRoom = !!nextRoom;
+
+            return (
+              <button
+                onClick={() => hasNextRoom && handleStartRoom(nextRoom)}
+                disabled={!hasNextRoom}
+                className={`
+                  w-full mb-4 p-4 rounded-[16px] transition-all duration-200 group
+                  ${hasNextRoom
+                    ? 'bg-success hover:bg-success/90 cursor-pointer'
+                    : 'bg-neutral-dark cursor-not-allowed'}
+                `}
+              >
+                <div className="flex items-center gap-3">
+                  {/* Icon */}
+                  <div className={`
+                    w-10 h-10 rounded-[10px] flex items-center justify-center
+                    ${hasNextRoom ? 'bg-white/15' : 'bg-text-muted/10'}
+                  `}>
+                    {hasNextRoom ? (
+                      <Play className="w-5 h-5 text-white" />
+                    ) : (
+                      <CheckCircle className="w-5 h-5 text-text-muted" />
+                    )}
+                  </div>
+
+                  {/* Content */}
+                  <div className="flex-1 text-left">
+                    <p className={`font-semibold ${hasNextRoom ? 'text-white' : 'text-text-muted'}`}>
+                      {hasNextRoom ? 'Start Next Room' : 'All Rooms Done'}
+                    </p>
+                    <p className={`text-sm ${hasNextRoom ? 'text-white/70' : 'text-text-muted/60'}`}>
+                      {hasNextRoom
+                        ? `Room ${nextRoom.roomNumber} · ${nextRoom.type}`
+                        : 'No pending rooms'}
+                    </p>
+                  </div>
+
+                  {/* Arrow */}
+                  {hasNextRoom && (
+                    <ArrowRight className="w-5 h-5 text-white/70 group-hover:translate-x-0.5 transition-transform" />
+                  )}
+                </div>
+              </button>
+            );
+          })()}
+
+          {/* Secondary Actions Grid */}
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={() => navigate('/housekeeping/tasks')}
+              className="flex items-center gap-3 p-4 rounded-[16px] bg-neutral hover:bg-primary-100 border border-transparent hover:border-primary-200 transition-all group"
+            >
+              <div className="w-11 h-11 rounded-[10px] bg-gold/10 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <ClipboardList className="w-5 h-5 text-gold" />
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-medium text-text">My Tasks</p>
+                <p className="text-xs text-text-muted">{stats.pendingTasks + stats.inProgressTasks} pending</p>
+              </div>
+            </button>
+
+            <button
+              onClick={() => navigate('/housekeeping/rooms?priority=urgent')}
+              className="flex items-center gap-3 p-4 rounded-[16px] bg-neutral hover:bg-primary-100 border border-transparent hover:border-primary-200 transition-all group"
+            >
+              <div className="w-11 h-11 rounded-[10px] bg-danger/10 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <AlertTriangle className="w-5 h-5 text-danger" />
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-medium text-text">Urgent Rooms</p>
+                <p className="text-xs text-text-muted">{stats.urgentRooms} need attention</p>
+              </div>
+            </button>
+
+            <button
+              onClick={() => navigate('/housekeeping/rooms')}
+              className="flex items-center gap-3 p-4 rounded-[16px] bg-neutral hover:bg-primary-100 border border-transparent hover:border-primary-200 transition-all group"
+            >
+              <div className="w-11 h-11 rounded-[10px] bg-teal/10 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <BedDouble className="w-5 h-5 text-teal" />
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-medium text-text">All Rooms</p>
+                <p className="text-xs text-text-muted">{stats.totalRooms} assigned</p>
+              </div>
+            </button>
+
+            <button
+              onClick={() => navigate('/housekeeping/rooms?status=clean')}
+              className="flex items-center gap-3 p-4 rounded-[16px] bg-neutral hover:bg-primary-100 border border-transparent hover:border-primary-200 transition-all group"
+            >
+              <div className="w-11 h-11 rounded-[10px] bg-success/10 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <CheckCircle className="w-5 h-5 text-success" />
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-medium text-text">Completed</p>
+                <p className="text-xs text-text-muted">{stats.cleanRooms} today</p>
+              </div>
+            </button>
+          </div>
+        </Card>
+
+        {/* Active Tasks */}
+        <Card>
+          <div className="flex items-center justify-between pb-4 mb-5 border-b border-border">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-gold/10 flex items-center justify-center">
+                <ClipboardList className="w-5 h-5 text-gold" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-text">Active Tasks</h2>
+                <p className="text-sm text-text-muted">
+                  {activeTasks.length} pending · {tasks.filter(t => t.status === 'completed').length} done today
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/housekeeping/tasks')}
+              icon={ArrowRight}
+              iconPosition="right"
+            >
+              View All
+            </Button>
+          </div>
+
+          {activeTasks.length === 0 ? (
+            <div className="text-center py-10">
+              <div className="w-16 h-16 rounded-full bg-success/10 flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="w-8 h-8 text-success" />
+              </div>
+              <p className="font-medium text-text">All tasks completed!</p>
+              <p className="text-sm text-text-muted mt-1">Great job today</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {activeTasks.map((task) => (
+                <div
+                  key={task.id}
+                  className="flex items-center gap-3 p-4 rounded-[14px] bg-neutral hover:bg-primary-100 transition-colors cursor-pointer group border border-transparent hover:border-primary-200"
+                  onClick={() => navigate('/housekeeping/tasks')}
+                >
+                  {/* Priority indicator */}
+                  <div className={`w-1 h-12 rounded-full shrink-0 ${
+                    task.priority === 'urgent' ? 'bg-danger' :
+                    task.priority === 'high' ? 'bg-warning' : 'bg-primary/30'
+                  }`} />
+
+                  {/* Task icon */}
+                  <div className={`w-10 h-10 rounded-[10px] flex items-center justify-center shrink-0 ${
+                    task.priority === 'urgent' ? 'bg-danger/10' :
+                    task.priority === 'high' ? 'bg-warning/10' : 'bg-primary/10'
+                  }`}>
+                    <ClipboardList className={`w-5 h-5 ${
+                      task.priority === 'urgent' ? 'text-danger' :
+                      task.priority === 'high' ? 'text-warning' : 'text-primary'
+                    }`} />
+                  </div>
+
+                  {/* Task details */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-medium text-text truncate">{task.title}</p>
+                      {task.priority === 'urgent' && (
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase bg-danger/10 text-danger">
+                          Urgent
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-xs text-text-muted">Room {task.room}</span>
+                      {task.dueTime && (
+                        <>
+                          <span className="text-xs text-text-muted">·</span>
+                          <span className="text-xs text-text-muted flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {task.dueTime}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Action */}
+                  {task.status === 'todo' ? (
+                    <Button
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleStartTask(task);
+                      }}
+                    >
+                      Start
+                    </Button>
+                  ) : (
+                    <span className="text-xs font-medium text-warning px-2.5 py-1.5 rounded-full bg-warning/10 flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-warning animate-pulse" />
+                      In Progress
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+      </div>
+
+      {/* Recent Alerts - Full Width */}
+      {recentNotifications.length > 0 && (
+        <Card>
+          <div className="flex items-center justify-between pb-4 mb-5 border-b border-border">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-danger/10 flex items-center justify-center">
+                <AlertTriangle className="w-5 h-5 text-danger" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-text">Recent Alerts</h2>
+                <p className="text-sm text-text-muted">
+                  {recentNotifications.length} unread · Requires your attention
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/notifications')}
+              icon={ArrowRight}
+              iconPosition="right"
+            >
+              View All
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {recentNotifications.map((notif) => (
+              <div
+                key={notif.id}
+                className={`
+                  p-4 rounded-[16px] border
+                  ${notif.priority === 'urgent' ? 'bg-danger/5 border-danger/20' :
+                    notif.priority === 'high' ? 'bg-warning/5 border-warning/20' :
+                    'bg-primary/5 border-primary/20'}
+                `}
+              >
+                <div className="flex items-start gap-3">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                    notif.priority === 'urgent' ? 'bg-danger/10' :
+                    notif.priority === 'high' ? 'bg-warning/10' : 'bg-primary/10'
+                  }`}>
+                    <AlertTriangle className={`w-4 h-4 ${
+                      notif.priority === 'urgent' ? 'text-danger' :
+                      notif.priority === 'high' ? 'text-warning' : 'text-primary'
+                    }`} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-text">{notif.title}</p>
+                    <p className="text-xs text-text-light mt-1 line-clamp-2">{notif.message}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
     </div>
   );
 };

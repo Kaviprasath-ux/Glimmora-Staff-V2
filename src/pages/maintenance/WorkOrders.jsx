@@ -1,5 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import {
   Wrench,
   Plus,
@@ -15,11 +16,34 @@ import {
 import PageHeader from '../../layouts/PageHeader';
 import Card from '../../components/ui/Card';
 import { StatusBadge, SeverityBadge } from '../../components/ui/Badge';
-import Button, { ButtonGroup, ButtonGroupItem } from '../../components/ui/Button';
 import { SearchInput, Select, Textarea } from '../../components/ui/Input';
 import Input from '../../components/ui/Input';
 import { FormModal } from '../../components/ui/Modal';
 import { useMaintenance, useProfile } from '../../hooks/useStaffPortal';
+
+// Animation variants
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.05,
+      delayChildren: 0.1
+    }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 12 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.3,
+      ease: [0.16, 1, 0.3, 1]
+    }
+  }
+};
 
 const WorkOrders = () => {
   const navigate = useNavigate();
@@ -32,6 +56,8 @@ const WorkOrders = () => {
   const [showCommentModal, setShowCommentModal] = useState(false);
   const [selectedWorkOrder, setSelectedWorkOrder] = useState(null);
   const [newComment, setNewComment] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
   const [newWorkOrder, setNewWorkOrder] = useState({
     title: '',
     description: '',
@@ -62,6 +88,18 @@ const WorkOrders = () => {
       return severityOrder[a.severity] - severityOrder[b.severity];
     });
   }, [workOrders, searchQuery, statusFilter]);
+
+  // Reset page when filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter, searchQuery]);
+
+  // Pagination
+  const totalPages = Math.ceil(filteredWorkOrders.length / itemsPerPage);
+  const paginatedWorkOrders = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredWorkOrders.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredWorkOrders, currentPage]);
 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
@@ -139,196 +177,281 @@ const WorkOrders = () => {
   ];
 
   return (
-    <div>
+    <motion.div
+      initial="hidden"
+      animate="visible"
+      variants={containerVariants}
+    >
       <PageHeader
         title="Work Orders"
         subtitle={`${stats.pendingWorkOrders + stats.inProgressWorkOrders} open work orders`}
-        actions={
-          <Button icon={Plus} onClick={() => setShowAddModal(true)}>
-            Create Work Order
-          </Button>
-        }
       />
 
-      {/* Status Summary */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        <div
-          className={`p-4 rounded-[14px] cursor-pointer transition-all ${
-            statusFilter === 'pending' ? 'bg-warning-light ring-2 ring-warning' : 'bg-white border border-border hover:border-warning'
-          }`}
-          onClick={() => setStatusFilter(statusFilter === 'pending' ? 'all' : 'pending')}
-        >
-          <div className="flex items-center gap-2">
-            <Clock className="w-5 h-5 text-warning" />
-            <span className="text-2xl font-bold text-text">{stats.pendingWorkOrders}</span>
+      {/* Main Card */}
+      <Card>
+        {/* Header */}
+        <div className="flex items-center justify-between pb-4 mb-5 border-b border-border">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+              <Wrench className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-text">All Work Orders</h2>
+              <p className="text-sm text-text-muted">{filteredWorkOrders.length} orders</p>
+            </div>
           </div>
-          <p className="text-sm text-text-light mt-1">Pending</p>
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium rounded-[8px] bg-primary text-white hover:bg-primary-dark transition-all"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Create Order
+          </button>
         </div>
 
-        <div
-          className={`p-4 rounded-[14px] cursor-pointer transition-all ${
-            statusFilter === 'in_progress' ? 'bg-primary/10 ring-2 ring-primary' : 'bg-white border border-border hover:border-primary'
-          }`}
-          onClick={() => setStatusFilter(statusFilter === 'in_progress' ? 'all' : 'in_progress')}
-        >
-          <div className="flex items-center gap-2">
-            <Wrench className="w-5 h-5 text-primary" />
-            <span className="text-2xl font-bold text-text">{stats.inProgressWorkOrders}</span>
+        {/* Search and Filters */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 mb-5">
+          <div className="flex-1">
+            <SearchInput
+              placeholder="Search work orders..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onClear={() => setSearchQuery('')}
+            />
           </div>
-          <p className="text-sm text-text-light mt-1">In Progress</p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setStatusFilter('all')}
+              className={`px-3 py-2 text-xs font-medium rounded-[8px] transition-colors ${
+                statusFilter === 'all'
+                  ? 'bg-primary text-white'
+                  : 'bg-neutral text-text-muted hover:bg-primary-100'
+              }`}
+            >
+              All
+            </button>
+            <button
+              onClick={() => setStatusFilter('pending')}
+              className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-[8px] transition-colors ${
+                statusFilter === 'pending'
+                  ? 'bg-primary text-white'
+                  : 'bg-neutral text-text-muted hover:bg-primary-100'
+              }`}
+            >
+              Pending
+              <span className={`px-1.5 py-0.5 rounded text-[10px] ${
+                statusFilter === 'pending' ? 'bg-white/20' : 'bg-warning/10 text-warning'
+              }`}>
+                {stats.pendingWorkOrders}
+              </span>
+            </button>
+            <button
+              onClick={() => setStatusFilter('in_progress')}
+              className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-[8px] transition-colors ${
+                statusFilter === 'in_progress'
+                  ? 'bg-primary text-white'
+                  : 'bg-neutral text-text-muted hover:bg-primary-100'
+              }`}
+            >
+              In Progress
+              <span className={`px-1.5 py-0.5 rounded text-[10px] ${
+                statusFilter === 'in_progress' ? 'bg-white/20' : 'bg-primary/10 text-primary'
+              }`}>
+                {stats.inProgressWorkOrders}
+              </span>
+            </button>
+            <button
+              onClick={() => setStatusFilter('completed')}
+              className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-[8px] transition-colors ${
+                statusFilter === 'completed'
+                  ? 'bg-primary text-white'
+                  : 'bg-neutral text-text-muted hover:bg-primary-100'
+              }`}
+            >
+              Completed
+              <span className={`px-1.5 py-0.5 rounded text-[10px] ${
+                statusFilter === 'completed' ? 'bg-white/20' : 'bg-success/10 text-success'
+              }`}>
+                {stats.completedWorkOrders}
+              </span>
+            </button>
+          </div>
         </div>
 
-        <div
-          className={`p-4 rounded-[14px] cursor-pointer transition-all ${
-            statusFilter === 'completed' ? 'bg-success-light ring-2 ring-success' : 'bg-white border border-border hover:border-success'
-          }`}
-          onClick={() => setStatusFilter(statusFilter === 'completed' ? 'all' : 'completed')}
-        >
-          <div className="flex items-center gap-2">
-            <CheckCircle className="w-5 h-5 text-success" />
-            <span className="text-2xl font-bold text-text">{stats.completedWorkOrders}</span>
+        {/* Work Orders List */}
+        {filteredWorkOrders.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="w-16 h-16 rounded-full bg-neutral flex items-center justify-center mx-auto mb-4">
+              <Wrench className="w-8 h-8 text-text-muted" />
+            </div>
+            <h3 className="text-lg font-semibold text-text mb-2">No work orders found</h3>
+            <p className="text-sm text-text-muted mb-4">Create a new work order to get started</p>
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium rounded-[8px] bg-primary text-white hover:bg-primary-dark transition-all"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Create Work Order
+            </button>
           </div>
-          <p className="text-sm text-text-light mt-1">Completed</p>
-        </div>
-      </div>
-
-      {/* Search */}
-      <div className="mb-6">
-        <SearchInput
-          placeholder="Search work orders..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          onClear={() => setSearchQuery('')}
-        />
-      </div>
-
-      {/* Work Orders List */}
-      {filteredWorkOrders.length === 0 ? (
-        <Card className="text-center py-12">
-          <Wrench className="w-16 h-16 text-text-muted mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-text mb-2">No work orders found</h3>
-          <p className="text-text-light mb-4">Create a new work order to get started</p>
-          <Button icon={Plus} onClick={() => setShowAddModal(true)}>
-            Create Work Order
-          </Button>
-        </Card>
-      ) : (
-        <div className="space-y-4">
-          {filteredWorkOrders.map((wo) => (
-            <Card key={wo.id} className="relative overflow-hidden">
-              {/* Severity indicator */}
-              <div className={`absolute top-0 left-0 w-1 h-full ${
-                wo.severity === 'critical' ? 'bg-danger' :
-                wo.severity === 'high' ? 'bg-warning' :
-                wo.severity === 'medium' ? 'bg-gold' :
-                'bg-info'
-              }`} />
-
-              <div className="pl-4">
-                <div className="flex items-start justify-between gap-4 mb-4">
-                  <div className="flex items-start gap-4">
-                    <div className={`
-                      w-12 h-12 rounded-[10px] flex items-center justify-center flex-shrink-0
-                      ${wo.severity === 'critical' ? 'bg-danger-light' :
-                        wo.severity === 'high' ? 'bg-warning-light' :
-                        'bg-primary/10'}
-                    `}>
-                      {wo.severity === 'critical' ? (
-                        <AlertCircle className="w-6 h-6 text-danger" />
-                      ) : (
-                        <Wrench className="w-6 h-6 text-primary" />
-                      )}
-                    </div>
-
-                    <div>
-                      <h3 className="font-semibold text-text">{wo.title}</h3>
-                      <div className="flex flex-wrap items-center gap-2 mt-1">
-                        <SeverityBadge severity={wo.severity} />
-                        <StatusBadge status={wo.status} />
-                        <span className="text-sm text-text-light">{wo.issueType}</span>
-                      </div>
-                    </div>
+        ) : (
+          <motion.div
+            key={statusFilter}
+            className="space-y-4"
+            initial="hidden"
+            animate="visible"
+            variants={containerVariants}
+          >
+            {paginatedWorkOrders.map((wo) => (
+              <motion.div
+                key={wo.id}
+                variants={itemVariants}
+                className="p-4 rounded-[12px] border border-border hover:border-primary-200 transition-all"
+              >
+                {/* Header Row */}
+                <div className="flex items-start gap-3 mb-3">
+                  <div className={`
+                    w-10 h-10 rounded-full flex items-center justify-center shrink-0
+                    ${wo.severity === 'critical' ? 'bg-danger/10' :
+                      wo.severity === 'high' ? 'bg-warning/10' :
+                      'bg-primary/10'}
+                  `}>
+                    {wo.severity === 'critical' ? (
+                      <AlertCircle className="w-5 h-5 text-danger" />
+                    ) : (
+                      <Wrench className="w-5 h-5 text-primary" />
+                    )}
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="font-semibold text-text">{wo.title}</h3>
+                      <SeverityBadge severity={wo.severity} />
+                      <StatusBadge status={wo.status} />
+                    </div>
+                    <p className="text-xs text-text-muted mt-1">{wo.issueType}</p>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
                     {wo.status === 'pending' && (
-                      <Button
-                        size="sm"
-                        icon={Play}
+                      <button
                         onClick={(e) => handleStartWorkOrder(wo, e)}
+                        className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium rounded-[8px] bg-primary text-white hover:bg-primary-dark transition-all"
                       >
+                        <Play className="w-3.5 h-3.5" />
                         Start
-                      </Button>
+                      </button>
                     )}
                     {wo.status === 'in_progress' && (
-                      <Button
-                        size="sm"
-                        variant="success"
-                        icon={CheckCircle}
+                      <button
                         onClick={(e) => handleCompleteWorkOrder(wo, e)}
+                        className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium rounded-[8px] bg-success text-white hover:bg-success/90 transition-all"
                       >
+                        <CheckCircle className="w-3.5 h-3.5" />
                         Complete
-                      </Button>
+                      </button>
                     )}
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      icon={MessageSquare}
+                    <button
                       onClick={(e) => {
                         e.stopPropagation();
                         setSelectedWorkOrder(wo);
                         setShowCommentModal(true);
                       }}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium rounded-[8px] border border-border text-text-muted hover:text-text hover:border-primary-200 transition-colors"
                     >
+                      <MessageSquare className="w-3.5 h-3.5" />
                       {wo.comments?.length || 0}
-                    </Button>
+                    </button>
                   </div>
                 </div>
 
                 {wo.description && (
-                  <p className="text-sm text-text-light mb-4 line-clamp-2">{wo.description}</p>
+                  <p className="text-sm text-text-muted mb-3 line-clamp-2">{wo.description}</p>
                 )}
 
-                {/* Details Grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+                {/* Info Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <div className="flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-text-muted" />
-                    <span className="text-text-light">{wo.location}</span>
+                    <MapPin className="w-3.5 h-3.5 text-text-muted" />
+                    <span className="text-xs text-text-muted">{wo.location}</span>
                   </div>
-
                   <div className="flex items-center gap-2">
-                    <User className="w-4 h-4 text-text-muted" />
-                    <span className="text-text-light">{wo.assignedTo || 'Unassigned'}</span>
+                    <User className="w-3.5 h-3.5 text-text-muted" />
+                    <span className="text-xs text-text-muted">{wo.assignedTo || 'Unassigned'}</span>
                   </div>
-
                   <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-text-muted" />
-                    <span className="text-text-light">Due: {formatDate(wo.dueDate)}</span>
+                    <Calendar className="w-3.5 h-3.5 text-text-muted" />
+                    <span className="text-xs text-text-muted">Due: {formatDate(wo.dueDate)}</span>
                   </div>
-
                   <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-text-muted" />
-                    <span className="text-text-light">Est: {wo.estimatedHours}h</span>
+                    <Clock className="w-3.5 h-3.5 text-text-muted" />
+                    <span className="text-xs text-text-muted">Est: {wo.estimatedHours}h</span>
                   </div>
                 </div>
 
-                {/* Recent Comments */}
+                {/* Latest Comment */}
                 {wo.comments && wo.comments.length > 0 && (
-                  <div className="mt-4 pt-4 border-t border-border">
-                    <p className="text-xs text-text-muted mb-2">Latest comment:</p>
-                    <div className="bg-neutral p-3 rounded-[10px]">
-                      <p className="text-sm text-text">{wo.comments[wo.comments.length - 1].text}</p>
-                      <p className="text-xs text-text-muted mt-1">
-                        — {wo.comments[wo.comments.length - 1].author}
-                      </p>
+                  <div className="mt-3 pt-3 border-t border-border">
+                    <p className="text-[10px] text-text-muted uppercase tracking-wider mb-2">Latest comment</p>
+                    <div className="bg-neutral/50 p-3 rounded-[8px]">
+                      <p className="text-xs text-text">{wo.comments[wo.comments.length - 1].text}</p>
+                      <p className="text-[10px] text-text-muted mt-1">— {wo.comments[wo.comments.length - 1].author}</p>
                     </div>
                   </div>
                 )}
-              </div>
-            </Card>
-          ))}
-        </div>
-      )}
+              </motion.div>
+            ))}
+          </motion.div>
+        )}
+
+        {/* Pagination */}
+        {filteredWorkOrders.length > itemsPerPage && (
+          <div className="flex items-center justify-between pt-5 mt-5 border-t border-border">
+            <p className="text-sm text-text-muted">
+              Showing {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, filteredWorkOrders.length)} of {filteredWorkOrders.length}
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className={`px-3 py-1.5 text-sm font-medium rounded-[8px] border transition-colors ${
+                  currentPage === 1
+                    ? 'border-border text-text-muted cursor-not-allowed opacity-50'
+                    : 'border-border text-text hover:border-primary-200 hover:bg-primary-50'
+                }`}
+              >
+                Previous
+              </button>
+
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={`w-8 h-8 text-sm font-medium rounded-[8px] transition-colors ${
+                    currentPage === page
+                      ? 'bg-primary text-white'
+                      : 'text-text-muted hover:bg-primary-100'
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
+
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className={`px-3 py-1.5 text-sm font-medium rounded-[8px] border transition-colors ${
+                  currentPage === totalPages
+                    ? 'border-border text-text-muted cursor-not-allowed opacity-50'
+                    : 'border-border text-text hover:border-primary-200 hover:bg-primary-50'
+                }`}
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
+      </Card>
 
       {/* Add Work Order Modal */}
       <FormModal
@@ -438,7 +561,7 @@ const WorkOrders = () => {
           />
         </div>
       </FormModal>
-    </div>
+    </motion.div>
   );
 };
 

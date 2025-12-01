@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import {
   Package,
   Clock,
@@ -6,20 +7,55 @@ import {
   User,
   MapPin,
   MessageSquare,
-  AlertTriangle
+  Play,
+  Briefcase,
+  Shirt,
+  Gift,
+  ClipboardList,
+  ArrowRight
 } from 'lucide-react';
 import PageHeader from '../../layouts/PageHeader';
 import Card from '../../components/ui/Card';
 import { StatusBadge, PriorityBadge } from '../../components/ui/Badge';
-import Button, { ButtonGroup, ButtonGroupItem } from '../../components/ui/Button';
 import { SearchInput } from '../../components/ui/Input';
 import { useRunner } from '../../hooks/useStaffPortal';
+
+// Animation variants
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.05,
+      delayChildren: 0.1
+    }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 12 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.3,
+      ease: [0.16, 1, 0.3, 1]
+    }
+  }
+};
 
 const PickupRequests = () => {
   const { pickupRequests, stats, acceptPickup, completePickup } = useRunner();
 
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  // Reset page when filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter, searchQuery]);
 
   const filteredPickups = useMemo(() => {
     return pickupRequests.filter(pickup => {
@@ -41,6 +77,13 @@ const PickupRequests = () => {
       return priorityOrder[a.priority] - priorityOrder[b.priority];
     });
   }, [pickupRequests, searchQuery, statusFilter]);
+
+  // Pagination
+  const totalPages = Math.ceil(filteredPickups.length / itemsPerPage);
+  const paginatedPickups = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredPickups.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredPickups, currentPage]);
 
   const formatTime = (timestamp) => {
     if (!timestamp) return 'N/A';
@@ -73,17 +116,18 @@ const PickupRequests = () => {
   };
 
   const getTypeIcon = (type) => {
+    const iconClass = "w-5 h-5 text-text-muted";
     switch (type) {
       case 'luggage':
-        return '🧳';
+        return <Briefcase className={iconClass} />;
       case 'laundry':
-        return '👔';
+        return <Shirt className={iconClass} />;
       case 'amenity_request':
-        return '🎁';
+        return <Gift className={iconClass} />;
       case 'package':
-        return '📦';
+        return <Package className={iconClass} />;
       default:
-        return '📋';
+        return <ClipboardList className={iconClass} />;
     }
   };
 
@@ -96,189 +140,307 @@ const PickupRequests = () => {
   };
 
   return (
-    <div>
+    <motion.div
+      initial="hidden"
+      animate="visible"
+      variants={containerVariants}
+    >
       <PageHeader
         title="Pickup Requests"
         subtitle={`${stats.pendingPickups + stats.inProgressPickups} active requests`}
       />
 
-      {/* Status Summary */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        <div
-          className={`p-4 rounded-[14px] cursor-pointer transition-all ${
-            statusFilter === 'pending' ? 'bg-warning-light ring-2 ring-warning' : 'bg-white border border-border hover:border-warning'
-          }`}
-          onClick={() => setStatusFilter(statusFilter === 'pending' ? 'all' : 'pending')}
-        >
-          <div className="flex items-center gap-2">
-            <Clock className="w-5 h-5 text-warning" />
-            <span className="text-2xl font-bold text-text">{stats.pendingPickups}</span>
+      {/* Main Card */}
+      <Card>
+        {/* Header */}
+        <div className="flex items-center justify-between pb-4 mb-5 border-b border-border">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+              <Package className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-text">All Pickup Requests</h2>
+              <p className="text-sm text-text-muted">{filteredPickups.length} requests</p>
+            </div>
           </div>
-          <p className="text-sm text-text-light mt-1">Pending</p>
         </div>
 
-        <div
-          className={`p-4 rounded-[14px] cursor-pointer transition-all ${
-            statusFilter === 'in_progress' ? 'bg-primary/10 ring-2 ring-primary' : 'bg-white border border-border hover:border-primary'
-          }`}
-          onClick={() => setStatusFilter(statusFilter === 'in_progress' ? 'all' : 'in_progress')}
-        >
-          <div className="flex items-center gap-2">
-            <Package className="w-5 h-5 text-primary" />
-            <span className="text-2xl font-bold text-text">{stats.inProgressPickups}</span>
+        {/* Search and Filters */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 mb-5">
+          <div className="flex-1">
+            <SearchInput
+              placeholder="Search pickup requests..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onClear={() => setSearchQuery('')}
+            />
           </div>
-          <p className="text-sm text-text-light mt-1">In Progress</p>
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={() => setStatusFilter('all')}
+              className={`px-3 py-2 text-xs font-medium rounded-[8px] transition-colors ${
+                statusFilter === 'all'
+                  ? 'bg-primary text-white'
+                  : 'bg-neutral text-text-muted hover:bg-primary-100'
+              }`}
+            >
+              All
+            </button>
+            <button
+              onClick={() => setStatusFilter('pending')}
+              className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-[8px] transition-colors ${
+                statusFilter === 'pending'
+                  ? 'bg-primary text-white'
+                  : 'bg-neutral text-text-muted hover:bg-primary-100'
+              }`}
+            >
+              Pending
+              <span className={`px-1.5 py-0.5 rounded text-[10px] ${
+                statusFilter === 'pending' ? 'bg-white/20' : 'bg-warning/10 text-warning'
+              }`}>
+                {stats.pendingPickups}
+              </span>
+            </button>
+            <button
+              onClick={() => setStatusFilter('in_progress')}
+              className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-[8px] transition-colors ${
+                statusFilter === 'in_progress'
+                  ? 'bg-primary text-white'
+                  : 'bg-neutral text-text-muted hover:bg-primary-100'
+              }`}
+            >
+              In Progress
+              <span className={`px-1.5 py-0.5 rounded text-[10px] ${
+                statusFilter === 'in_progress' ? 'bg-white/20' : 'bg-primary/10 text-primary'
+              }`}>
+                {stats.inProgressPickups}
+              </span>
+            </button>
+            <button
+              onClick={() => setStatusFilter('completed')}
+              className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-[8px] transition-colors ${
+                statusFilter === 'completed'
+                  ? 'bg-primary text-white'
+                  : 'bg-neutral text-text-muted hover:bg-primary-100'
+              }`}
+            >
+              Completed
+              <span className={`px-1.5 py-0.5 rounded text-[10px] ${
+                statusFilter === 'completed' ? 'bg-white/20' : 'bg-success/10 text-success'
+              }`}>
+                {stats.completedPickups}
+              </span>
+            </button>
+          </div>
         </div>
 
-        <div
-          className={`p-4 rounded-[14px] cursor-pointer transition-all ${
-            statusFilter === 'completed' ? 'bg-success-light ring-2 ring-success' : 'bg-white border border-border hover:border-success'
-          }`}
-          onClick={() => setStatusFilter(statusFilter === 'completed' ? 'all' : 'completed')}
-        >
-          <div className="flex items-center gap-2">
-            <CheckCircle className="w-5 h-5 text-success" />
-            <span className="text-2xl font-bold text-text">{stats.completedPickups}</span>
+        {/* Pickup Requests List */}
+        {filteredPickups.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="w-16 h-16 rounded-full bg-neutral flex items-center justify-center mx-auto mb-4">
+              <Package className="w-8 h-8 text-text-muted" />
+            </div>
+            <h3 className="text-lg font-semibold text-text mb-2">No pickup requests found</h3>
+            <p className="text-sm text-text-muted">New requests will appear here</p>
           </div>
-          <p className="text-sm text-text-light mt-1">Completed</p>
-        </div>
-      </div>
+        ) : (
+          <motion.div
+            key={statusFilter}
+            className="space-y-4"
+            initial="hidden"
+            animate="visible"
+            variants={containerVariants}
+          >
+            {paginatedPickups.map((pickup) => (
+              <motion.div
+                key={pickup.id}
+                variants={itemVariants}
+                className={`p-5 rounded-[16px] border transition-all relative overflow-hidden ${
+                  pickup.status === 'completed'
+                    ? 'bg-success/5 border-success/20'
+                    : pickup.priority === 'urgent'
+                    ? 'bg-danger/5 border-danger/20'
+                    : pickup.status === 'in_progress'
+                    ? 'bg-warning/5 border-warning/20'
+                    : 'bg-white border-border hover:border-primary/30 hover:shadow-sm'
+                }`}
+              >
+                {/* Priority indicator - only show for non-completed urgent items */}
+                {pickup.priority === 'urgent' && pickup.status !== 'completed' && (
+                  <div className="absolute top-0 left-0 w-full h-1 bg-danger" />
+                )}
 
-      {/* Search */}
-      <div className="mb-6">
-        <SearchInput
-          placeholder="Search pickup requests..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          onClear={() => setSearchQuery('')}
-        />
-      </div>
+                <div className="flex items-start gap-4">
+                  {/* Type Icon */}
+                  <div className="w-12 h-12 rounded-xl bg-neutral flex items-center justify-center shrink-0">
+                    {getTypeIcon(pickup.type)}
+                  </div>
 
-      {/* Pickup Requests List */}
-      {filteredPickups.length === 0 ? (
-        <Card className="text-center py-12">
-          <Package className="w-16 h-16 text-text-muted mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-text mb-2">No pickup requests found</h3>
-          <p className="text-text-light">New requests will appear here</p>
-        </Card>
-      ) : (
-        <div className="space-y-4">
-          {filteredPickups.map((pickup) => (
-            <Card key={pickup.id} className="relative overflow-hidden">
-              {/* Priority indicator */}
-              {pickup.priority === 'urgent' && (
-                <div className="absolute top-0 left-0 w-full h-1 bg-danger" />
-              )}
-
-              <div className="flex items-start gap-4">
-                {/* Type Icon */}
-                <div className="text-3xl flex-shrink-0">{getTypeIcon(pickup.type)}</div>
-
-                {/* Content */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-lg font-semibold text-text">Room {pickup.room}</span>
-                        <span className="text-sm text-primary font-medium">{getTypeLabel(pickup.type)}</span>
-                      </div>
-                      <div className="flex items-center gap-2 mt-1">
-                        <StatusBadge status={pickup.status} />
-                        {pickup.priority !== 'normal' && <PriorityBadge priority={pickup.priority} />}
-                      </div>
-                    </div>
-
-                    <div className="flex gap-2">
-                      {pickup.status === 'pending' && (
-                        <Button onClick={() => handleAccept(pickup)}>
-                          Accept
-                        </Button>
-                      )}
-                      {pickup.status === 'in_progress' && (
-                        <Button variant="success" onClick={() => handleComplete(pickup)}>
-                          Mark Complete
-                        </Button>
-                      )}
-                      {pickup.status === 'completed' && (
-                        <div className="flex items-center gap-2 text-success">
-                          <CheckCircle className="w-5 h-5" />
-                          <span className="font-medium">Completed</span>
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    {/* Header Row */}
+                    <div className="flex items-start justify-between gap-4 mb-3">
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                          <span className="text-lg font-semibold text-text">Room {pickup.room}</span>
+                          <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                            {getTypeLabel(pickup.type)}
+                          </span>
                         </div>
-                      )}
-                    </div>
-                  </div>
+                        <div className="flex items-center gap-2">
+                          <StatusBadge status={pickup.status} />
+                          {pickup.priority !== 'normal' && <PriorityBadge priority={pickup.priority} />}
+                        </div>
+                      </div>
 
-                  {/* Items */}
-                  <div className="mt-3 p-3 bg-neutral rounded-[10px]">
-                    <p className="text-sm font-medium text-text">Items:</p>
-                    <p className="text-sm text-text-light">{pickup.items}</p>
-                  </div>
-
-                  {/* Details Grid */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4 text-sm">
-                    <div className="flex items-center gap-2">
-                      <User className="w-4 h-4 text-text-muted" />
-                      <div>
-                        <p className="text-text-muted text-xs">Guest</p>
-                        <p className="text-text font-medium">{pickup.guestName}</p>
+                      <div className="shrink-0">
+                        {pickup.status === 'pending' && (
+                          <button
+                            onClick={() => handleAccept(pickup)}
+                            className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium rounded-[8px] bg-primary text-white hover:bg-primary-dark transition-all"
+                          >
+                            <Play className="w-3.5 h-3.5" />
+                            Accept
+                          </button>
+                        )}
+                        {pickup.status === 'in_progress' && (
+                          <button
+                            onClick={() => handleComplete(pickup)}
+                            className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium rounded-[8px] bg-success text-white hover:bg-success/90 transition-all"
+                          >
+                            <CheckCircle className="w-3.5 h-3.5" />
+                            Complete
+                          </button>
+                        )}
+                        {pickup.status === 'completed' && (
+                          <div className="flex items-center gap-2 text-success">
+                            <CheckCircle className="w-5 h-5" />
+                            <span className="text-sm font-medium">Completed</span>
+                          </div>
+                        )}
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <MapPin className="w-4 h-4 text-text-muted" />
-                      <div>
-                        <p className="text-text-muted text-xs">Pickup Location</p>
-                        <p className="text-text font-medium">{pickup.pickupLocation}</p>
+                    {/* Items */}
+                    <div className="p-3 bg-neutral/50 rounded-[10px] mb-4">
+                      <p className="text-xs font-medium text-text-muted mb-1">Items</p>
+                      <p className="text-sm text-text">{pickup.items}</p>
+                    </div>
+
+                    {/* Details Grid */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+                      <div className="flex items-start gap-2">
+                        <User className="w-4 h-4 text-text-muted mt-0.5" />
+                        <div>
+                          <p className="text-[10px] font-medium text-text-muted uppercase tracking-wider">Guest</p>
+                          <p className="text-sm text-text">{pickup.guestName}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-2">
+                        <MapPin className="w-4 h-4 text-text-muted mt-0.5" />
+                        <div>
+                          <p className="text-[10px] font-medium text-text-muted uppercase tracking-wider">Pickup</p>
+                          <p className="text-sm text-text">{pickup.pickupLocation}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-2">
+                        <ArrowRight className="w-4 h-4 text-text-muted mt-0.5" />
+                        <div>
+                          <p className="text-[10px] font-medium text-text-muted uppercase tracking-wider">Destination</p>
+                          <p className="text-sm text-text">{pickup.destination}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-2">
+                        <Clock className="w-4 h-4 text-text-muted mt-0.5" />
+                        <div>
+                          <p className="text-[10px] font-medium text-text-muted uppercase tracking-wider">Scheduled</p>
+                          <p className="text-sm text-text">{formatTime(pickup.scheduledTime)}</p>
+                        </div>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <MapPin className="w-4 h-4 text-text-muted" />
-                      <div>
-                        <p className="text-text-muted text-xs">Destination</p>
-                        <p className="text-text font-medium">{pickup.destination}</p>
+                    {/* Notes */}
+                    {pickup.notes && (
+                      <div className="p-3 bg-gold/10 rounded-[10px] border border-gold/20 mb-4">
+                        <div className="flex items-center gap-2 mb-1">
+                          <MessageSquare className="w-3.5 h-3.5 text-gold" />
+                          <span className="text-xs font-medium text-gold">Notes</span>
+                        </div>
+                        <p className="text-sm text-text-muted">{pickup.notes}</p>
                       </div>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-text-muted" />
-                      <div>
-                        <p className="text-text-muted text-xs">Scheduled</p>
-                        <p className="text-text font-medium">{formatTime(pickup.scheduledTime)}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Notes */}
-                  {pickup.notes && (
-                    <div className="mt-4 p-3 bg-gold/10 rounded-[10px] border border-gold/20">
-                      <div className="flex items-center gap-2 mb-1">
-                        <MessageSquare className="w-4 h-4 text-gold" />
-                        <span className="text-xs font-medium text-gold">Notes</span>
-                      </div>
-                      <p className="text-sm text-text-light">{pickup.notes}</p>
-                    </div>
-                  )}
-
-                  {/* Assigned To & Timestamps */}
-                  <div className="flex items-center justify-between mt-4 pt-4 border-t border-border text-xs text-text-muted">
-                    <div className="flex items-center gap-4">
-                      <span>Requested: {formatDate(pickup.requestedAt)}</span>
-                      {pickup.assignedTo && (
-                        <span>Assigned to: <span className="text-text font-medium">{pickup.assignedTo}</span></span>
-                      )}
-                    </div>
-                    {pickup.completedAt && (
-                      <span className="text-success">Completed: {formatDate(pickup.completedAt)}</span>
                     )}
+
+                    {/* Footer */}
+                    <div className="flex items-center justify-between pt-3 border-t border-border text-xs text-text-muted">
+                      <div className="flex items-center gap-4">
+                        <span>Requested: {formatDate(pickup.requestedAt)}</span>
+                        {pickup.assignedTo && (
+                          <span>Assigned: <span className="text-text font-medium">{pickup.assignedTo}</span></span>
+                        )}
+                      </div>
+                      {pickup.completedAt && (
+                        <span className="text-success font-medium">Completed: {formatDate(pickup.completedAt)}</span>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            </Card>
-          ))}
-        </div>
-      )}
-    </div>
+              </motion.div>
+            ))}
+          </motion.div>
+        )}
+
+        {/* Pagination */}
+        {filteredPickups.length > itemsPerPage && (
+          <div className="flex items-center justify-between pt-5 mt-5 border-t border-border">
+            <p className="text-sm text-text-muted">
+              Showing {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, filteredPickups.length)} of {filteredPickups.length}
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className={`px-3 py-1.5 text-sm font-medium rounded-[8px] border transition-colors ${
+                  currentPage === 1
+                    ? 'border-border text-text-muted cursor-not-allowed opacity-50'
+                    : 'border-border text-text hover:border-primary-200 hover:bg-primary-50'
+                }`}
+              >
+                Previous
+              </button>
+
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={`w-8 h-8 text-sm font-medium rounded-[8px] transition-colors ${
+                    currentPage === page
+                      ? 'bg-primary text-white'
+                      : 'text-text-muted hover:bg-primary-100'
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
+
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className={`px-3 py-1.5 text-sm font-medium rounded-[8px] border transition-colors ${
+                  currentPage === totalPages
+                    ? 'border-border text-text-muted cursor-not-allowed opacity-50'
+                    : 'border-border text-text hover:border-primary-200 hover:bg-primary-50'
+                }`}
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
+      </Card>
+    </motion.div>
   );
 };
 
